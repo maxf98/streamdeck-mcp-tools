@@ -18,15 +18,6 @@
             "path": "tools/clipboard"
         },
         {
-            "id": "structured-llm",
-            "name": "Structured LLM",
-            "description": "Call OpenAI with a JSON schema and get back a typed object. Use for classification, extraction, summarisation, or any task needing structured output. Requires an OpenAI API key.",
-            "version": "1.0.0",
-            "platform": ["darwin", "linux", "win32"],
-            "tags": ["llm", "openai", "ai", "structured-output"],
-            "path": "tools/structured-llm"
-        },
-        {
             "id": "obsidian",
             "name": "Obsidian",
             "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
