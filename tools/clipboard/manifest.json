@@ -3,8 +3,8 @@
     "name": "Clipboard",
     "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
     "version": "1.0.0",
-    "runtime": "python3",
-    "entrypoint": "server.py",
+    "command": "python3",
+    "args": ["server.py"],
     "install": "pip3 install -r requirements.txt",
     "platform": ["darwin"],
     "tags": ["clipboard", "text", "macos", "system"]
