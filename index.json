@@ -1,0 +1,21 @@
+{
+    "version": "1",
+    "tools": [
+        {
+            "id": "clipboard",
+            "name": "Clipboard",
+            "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "clipboard",
+                "text",
+                "macos",
+                "system"
+            ],
+            "path": "tools/clipboard"
+        }
+    ]
+}
