@@ -1,0 +1,20 @@
+{
+    "id": "obsidian",
+    "name": "Obsidian",
+    "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
+    "version": "1.0.0",
+    "command": "uv",
+    "args": ["run", "--with", "fastmcp", "python", "server.py"],
+    "install": "uv pip install -r requirements.txt",
+    "platform": ["darwin", "linux", "win32"],
+    "tags": ["notes", "obsidian", "markdown", "knowledge-base"],
+    "config_schema": {
+        "vault_path": {
+            "description": "Absolute path to your Obsidian vault folder",
+            "env": "OBSIDIAN_VAULT_PATH",
+            "type": "path",
+            "required": true,
+            "example": "/Users/you/Documents/MyVault"
+        }
+    }
+}
