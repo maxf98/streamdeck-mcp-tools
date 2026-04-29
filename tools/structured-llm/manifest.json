@@ -1,0 +1,20 @@
+{
+    "id": "structured-llm",
+    "command": "uv",
+    "args": ["run", "--with", "fastmcp", "python", "server.py"],
+    "config_schema": {
+        "api_key": {
+            "description": "OpenAI API key (sk-...)",
+            "env": "OPENAI_API_KEY",
+            "type": "string",
+            "required": true,
+            "secret": true
+        },
+        "default_model": {
+            "description": "Default model (e.g. gpt-4o-mini, gpt-4o)",
+            "env": "OPENAI_DEFAULT_MODEL",
+            "type": "string",
+            "required": false
+        }
+    }
+}
