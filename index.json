@@ -2,6 +2,24 @@
     "version": "1",
     "tools": [
         {
+            "id": "bash",
+            "name": "Bash / Shell",
+            "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "bash",
+                "shell",
+                "terminal",
+                "macos",
+                "developer",
+                "scripts"
+            ],
+            "path": "tools/bash"
+        },
+        {
             "id": "clipboard",
             "name": "Clipboard",
             "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
@@ -16,24 +34,6 @@
                 "system"
             ],
             "path": "tools/clipboard"
-        },
-        {
-            "id": "structured-llm",
-            "name": "Structured LLM",
-            "description": "Call OpenAI with a JSON schema and get back a typed object. Use for classification, extraction, summarisation, or any task needing structured output. Requires an OpenAI API key.",
-            "version": "1.0.0",
-            "platform": ["darwin", "linux", "win32"],
-            "tags": ["llm", "openai", "ai", "structured-output"],
-            "path": "tools/structured-llm"
-        },
-        {
-            "id": "bash",
-            "name": "Bash / Shell",
-            "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
-            "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["bash", "shell", "terminal", "macos", "developer", "scripts"],
-            "path": "tools/bash"
         },
         {
             "id": "obsidian",
