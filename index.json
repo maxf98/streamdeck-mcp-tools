@@ -164,21 +164,23 @@
             "path": "tools/safari"
         },
         {
-            "id": "voice-recorder",
-            "name": "Voice Recorder",
-            "description": "Start and stop microphone recordings on macOS. Returns file paths for use with transcription tools. Uses AVFoundation via PyObjC \u2014 no Homebrew dependencies.",
+            "id": "quicktime",
+            "name": "QuickTime Player",
+            "description": "Control QuickTime Player via AppleScript. Record audio from the microphone (start/stop/status \u2192 M4A), open the screen recording toolbar, open media files, and list open documents.",
             "version": "1.0.0",
             "platform": [
                 "darwin"
             ],
             "tags": [
+                "quicktime",
                 "audio",
                 "recording",
-                "microphone",
+                "screen-recording",
+                "video",
                 "macos",
-                "voice"
+                "applescript"
             ],
-            "path": "tools/voice-recorder"
+            "path": "tools/quicktime"
         },
         {
             "id": "vscode",
