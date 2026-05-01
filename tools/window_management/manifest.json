@@ -1,0 +1,11 @@
+{
+  "id": "window_management",
+  "name": "Window Management",
+  "description": "Move, resize and snap windows across screens. Get frontmost app, list open windows, snap to halves/quarters, and manage multiple displays.",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.js"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["windows", "resize", "move", "screens", "layout", "macos"]
+}

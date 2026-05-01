@@ -3,9 +3,9 @@
     "name": "Bash / Shell",
     "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
     "version": "1.0.0",
-    "command": "python3",
-    "args": ["server.py"],
-    "install": "",
+    "command": "node",
+    "args": ["server.mjs"],
+    "install": "npm install",
     "platform": ["darwin"],
     "tags": ["bash", "shell", "terminal", "macos", "developer", "scripts"]
 }

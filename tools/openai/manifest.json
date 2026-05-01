@@ -1,0 +1,20 @@
+{
+    "id": "openai",
+    "name": "OpenAI",
+    "description": "Structured LLM calls (GPT-4o, gpt-4o-mini) and Whisper audio transcription. Both tools share a single API key.",
+    "version": "1.0.0",
+    "command": "node",
+    "args": ["server.mjs"],
+    "install": "npm install",
+    "platform": ["darwin", "linux", "win32"],
+    "tags": ["llm", "openai", "ai", "structured-output", "whisper", "transcription"],
+    "config_schema": {
+        "api_key": {
+            "description": "OpenAI API key (sk-...)",
+            "env": "OPENAI_API_KEY",
+            "type": "string",
+            "required": true,
+            "secret": true
+        }
+    }
+}

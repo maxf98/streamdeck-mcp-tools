@@ -1,0 +1,14 @@
+{
+  "name": "window-management-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@jxa/run": "^1.0.5",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "plist": "^3.1.0"
+  }
+}

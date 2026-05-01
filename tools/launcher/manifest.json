@@ -1,0 +1,11 @@
+{
+  "id": "launcher",
+  "name": "Launcher",
+  "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.mjs"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["launch", "open", "finder", "app", "url", "folder"]
+}

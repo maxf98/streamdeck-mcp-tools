@@ -3,9 +3,9 @@
     "name": "Obsidian",
     "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
     "version": "1.0.0",
-    "command": "uv",
-    "args": ["run", "--with", "fastmcp", "python", "server.py"],
-    "install": "uv pip install -r requirements.txt",
+    "command": "node",
+    "args": ["server.mjs"],
+    "install": "npm install",
     "platform": ["darwin", "linux", "win32"],
     "tags": ["notes", "obsidian", "markdown", "knowledge-base"],
     "config_schema": {
