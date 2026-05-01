@@ -1,0 +1,11 @@
+{
+  "id": "chrome",
+  "name": "Google Chrome",
+  "description": "Control Chrome tabs and windows via JXA. Optionally enable CDP (--remote-debugging-port=9222) for JS execution, page source, and screenshots.",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.mjs"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["chrome", "browser", "tabs", "navigation", "web", "cdp", "macos"]
+}
