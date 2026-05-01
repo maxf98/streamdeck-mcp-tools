@@ -1,0 +1,11 @@
+{
+  "id": "apple_notes",
+  "name": "Apple Notes",
+  "description": "Read and write notes in Apple Notes. List, search, create, update, append and delete notes and folders.",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.mjs"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["notes", "apple", "macos", "markdown", "writing"]
+}

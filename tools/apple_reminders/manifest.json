@@ -1,0 +1,11 @@
+{
+  "id": "apple_reminders",
+  "name": "Apple Reminders",
+  "description": "Manage Apple Reminders — list, create, complete, delete and search reminders across all lists.",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.mjs"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["reminders", "tasks", "apple", "macos", "productivity"]
+}

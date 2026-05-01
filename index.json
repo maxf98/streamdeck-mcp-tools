@@ -2,6 +2,39 @@
     "version": "1",
     "tools": [
         {
+            "id": "apple_notes",
+            "name": "Apple Notes",
+            "description": "Read and write notes in Apple Notes via AppleScript. List folders and notes, get full note content, create, update, append, search, and delete notes. On first use, macOS will ask permission to control Notes — click Allow once.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "notes",
+                "apple",
+                "macos",
+                "applescript"
+            ],
+            "path": "tools/apple_notes"
+        },
+        {
+            "id": "apple_reminders",
+            "name": "Apple Reminders",
+            "description": "Manage reminders in Apple Reminders via AppleScript. List reminder lists, create reminders with due dates and priorities, complete/uncomplete, search, and delete. On first use, macOS will ask permission to control Reminders — click Allow once.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "reminders",
+                "tasks",
+                "apple",
+                "macos",
+                "applescript"
+            ],
+            "path": "tools/apple_reminders"
+        },
+        {
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
