@@ -1,0 +1,11 @@
+{
+  "id": "safari",
+  "name": "Safari",
+  "description": "Control Safari tabs and windows via AppleScript. Includes JS execution, page source and text via 'Allow JavaScript from Apple Events' (no extension or debug port needed).",
+  "version": "1.0.0",
+  "command": "node",
+  "args": ["server.mjs"],
+  "install": "npm install",
+  "platform": ["darwin"],
+  "tags": ["safari", "browser", "tabs", "navigation", "web", "macos", "javascript"]
+}

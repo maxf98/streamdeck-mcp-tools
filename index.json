@@ -73,6 +73,25 @@
             "path": "tools/launcher"
         },
         {
+            "id": "safari",
+            "name": "Safari",
+            "description": "Control Safari tabs and windows via AppleScript. Includes JS execution, page source and text via 'Allow JavaScript from Apple Events' (no extension or debug port needed).",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "safari",
+                "browser",
+                "tabs",
+                "navigation",
+                "web",
+                "macos",
+                "javascript"
+            ],
+            "path": "tools/safari"
+        },
+        {
             "id": "obsidian",
             "name": "Obsidian",
             "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
