@@ -1,35 +1,39 @@
 /**
- * Chrome — control Google Chrome via JXA (always) + CDP (opt-in)
+ * Chrome — control Google Chrome via JXA/AppleScript + CDP
  *
- * Layer 1 – JXA/AppleScript (no setup required):
+ * Layer 1 – Tab management (always available, works on user's regular Chrome):
  *   open_url, get_active_tab, list_tabs, focus_tab, close_tab,
  *   reload, go_back, go_forward, new_window
  *
- * Layer 2 – Chrome DevTools Protocol (requires --remote-debugging-port=9222):
- *   execute_javascript, get_page_source, get_page_text, take_screenshot,
- *   get_debug_status
+ * Layer 2 – Chrome DevTools Protocol (call enable_cdp once to set up):
+ *   enable_cdp       → launches a CDP-enabled Chrome window (separate profile
+ *                       at /tmp/chrome-cdp, runs alongside regular Chrome)
+ *   get_debug_status → check if CDP is available
+ *   navigate         → navigate the CDP window to a URL
+ *   execute_javascript, get_page_source, get_page_text, take_screenshot
  *
- * To enable CDP tools, launch Chrome once with:
- *   open -a "Google Chrome" --args --remote-debugging-port=9222
- *
- * To make it permanent, add --remote-debugging-port=9222 to your Chrome
- * launch shortcut / alias, or create a shell alias:
- *   alias chrome='open -a "Google Chrome" --args --remote-debugging-port=9222'
+ * CDP uses a separate Chrome profile so it never touches the user's regular
+ * session. Both Chrome instances run side by side. The CDP window is the one
+ * to use for content inspection and JS automation.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { run } from '@jxa/run';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 const CDP_PORT = 9222;
 const CDP_BASE = `http://localhost:${CDP_PORT}`;
+const CDP_USER_DATA_DIR = '/tmp/chrome-cdp';
 
 const server = new McpServer({ name: 'chrome', version: '1.0.0' });
 
-// ── JXA helpers ───────────────────────────────────────────────────────────────
+// ── JXA helper ────────────────────────────────────────────────────────────────
 
-/** Run JXA and throw a clean error if Chrome isn't open */
 async function jxa(fn, ...args) {
   try {
     return await run(fn, ...args);
@@ -44,40 +48,31 @@ async function jxa(fn, ...args) {
 
 // ── CDP helpers ───────────────────────────────────────────────────────────────
 
-const CDP_NOT_AVAILABLE = `CDP is not available. Launch Chrome with --remote-debugging-port=9222:
-  open -a "Google Chrome" --args --remote-debugging-port=9222`;
-
 async function cdpTargets() {
   try {
     const res = await fetch(`${CDP_BASE}/json`, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch {
-    throw new Error(CDP_NOT_AVAILABLE);
+    throw new Error(
+      'CDP is not available. Call enable_cdp to launch a CDP-enabled Chrome window.'
+    );
   }
 }
 
-/** Find the frontmost page target — first 'page' type in the list */
-async function cdpActiveTarget() {
+async function cdpActivePage() {
   const targets = await cdpTargets();
   const page = targets.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
-  if (!page) throw new Error('No Chrome page found via CDP. Make sure a tab is open.');
+  if (!page) throw new Error('No Chrome page found via CDP. Call navigate to open a URL.');
   return page;
 }
 
-/** Send a single CDP command over WebSocket and return the result */
 function cdpCall(wsUrl, method, params = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     const id = 1;
-    const timer = setTimeout(() => {
-      ws.close();
-      reject(new Error(`CDP timeout calling ${method}`));
-    }, 15000);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ id, method, params }));
-    };
+    const timer = setTimeout(() => { ws.close(); reject(new Error(`CDP timeout: ${method}`)); }, 15000);
+    ws.onopen = () => ws.send(JSON.stringify({ id, method, params }));
     ws.onmessage = (evt) => {
       const msg = JSON.parse(evt.data);
       if (msg.id === id) {
@@ -87,14 +82,11 @@ function cdpCall(wsUrl, method, params = {}) {
         else resolve(msg.result);
       }
     };
-    ws.onerror = (err) => {
-      clearTimeout(timer);
-      reject(new Error(`CDP WebSocket error: ${err.message ?? 'connection failed'}`));
-    };
+    ws.onerror = () => { clearTimeout(timer); reject(new Error('CDP WebSocket connection failed')); };
   });
 }
 
-// ── JXA Tools ─────────────────────────────────────────────────────────────────
+// ── Layer 1: Tab management ───────────────────────────────────────────────────
 
 server.registerTool('open_url', {
   description: 'Open a URL in Google Chrome. Opens in a new tab in the front window by default, or in a new window.',
@@ -104,25 +96,19 @@ server.registerTool('open_url', {
   },
 }, async ({ url, new_window }) => {
   if (new_window) {
-    await jxa((u) => {
-      const chrome = Application('Google Chrome');
-      chrome.open(u);
-      chrome.activate();
-    }, url);
+    await jxa((u) => { const c = Application('Google Chrome'); c.open(u); c.activate(); }, url);
   } else {
     await jxa((u) => {
-      const chrome = Application('Google Chrome');
-      if (chrome.windows.length === 0) {
-        chrome.open(u);
-      } else {
-        const tab = chrome.Tab({ url: u });
-        chrome.windows[0].tabs.push(tab);
-        chrome.windows[0].activeTabIndex = chrome.windows[0].tabs.length;
+      const c = Application('Google Chrome');
+      if (c.windows.length === 0) { c.open(u); }
+      else {
+        c.windows[0].tabs.push(c.Tab({ url: u }));
+        c.windows[0].activeTabIndex = c.windows[0].tabs.length;
       }
-      chrome.activate();
+      c.activate();
     }, url);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url, new_window }) }] };
+  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url }) }] };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -132,9 +118,9 @@ server.registerTool('get_active_tab', {
   inputSchema: {},
 }, async () => {
   const result = await jxa(() => {
-    const chrome = Application('Google Chrome');
-    if (chrome.windows.length === 0) return null;
-    const tab = chrome.windows[0].activeTab;
+    const c = Application('Google Chrome');
+    if (c.windows.length === 0) return null;
+    const tab = c.windows[0].activeTab;
     return { url: tab.url(), title: tab.title() };
   });
   if (!result) throw new Error('No Chrome windows open.');
@@ -148,18 +134,12 @@ server.registerTool('list_tabs', {
   inputSchema: {},
 }, async () => {
   const tabs = await jxa(() => {
-    const chrome = Application('Google Chrome');
+    const c = Application('Google Chrome');
     const results = [];
-    chrome.windows().forEach((win, wi) => {
-      const activeIdx = win.activeTabIndex();
+    c.windows().forEach((win, wi) => {
+      const ai = win.activeTabIndex();
       win.tabs().forEach((tab, ti) => {
-        results.push({
-          window_index: wi,
-          tab_index: ti,
-          url: tab.url(),
-          title: tab.title(),
-          active: (ti + 1) === activeIdx,
-        });
+        results.push({ window_index: wi, tab_index: ti, url: tab.url(), title: tab.title(), active: (ti + 1) === ai });
       });
     });
     return results;
@@ -170,22 +150,22 @@ server.registerTool('list_tabs', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('focus_tab', {
-  description: 'Switch to the first tab whose URL or title contains the given query string (case-insensitive). Brings Chrome to the foreground.',
+  description: 'Switch to the first tab whose URL or title contains the query string (case-insensitive). Brings Chrome to the foreground.',
   inputSchema: {
     query: z.string().describe('Substring to match against tab URL or title'),
   },
 }, async ({ query }) => {
   const result = await jxa((q) => {
-    const chrome = Application('Google Chrome');
+    const c = Application('Google Chrome');
     const lq = q.toLowerCase();
     let found = null;
-    chrome.windows().forEach((win, wi) => {
+    c.windows().forEach((win, wi) => {
       if (found) return;
       win.tabs().forEach((tab, ti) => {
         if (found) return;
         if (tab.url().toLowerCase().includes(lq) || tab.title().toLowerCase().includes(lq)) {
           win.activeTabIndex = ti + 1;
-          chrome.activate();
+          c.activate();
           found = { window_index: wi, tab_index: ti, url: tab.url(), title: tab.title() };
         }
       });
@@ -199,23 +179,23 @@ server.registerTool('focus_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('close_tab', {
-  description: 'Close a Chrome tab. If query is provided, closes the first tab matching the URL or title. Otherwise closes the active tab in the front window.',
+  description: 'Close a Chrome tab. Closes the first tab matching the query, or the active tab if no query given.',
   inputSchema: {
-    query: z.string().default('').describe('Substring to match (empty = close active tab)'),
+    query: z.string().default('').describe('Substring to match URL or title (empty = close active tab)'),
   },
 }, async ({ query }) => {
   const result = await jxa((q) => {
-    const chrome = Application('Google Chrome');
+    const c = Application('Google Chrome');
     if (!q) {
-      if (chrome.windows.length === 0) return null;
-      const tab = chrome.windows[0].activeTab;
+      if (c.windows.length === 0) return null;
+      const tab = c.windows[0].activeTab;
       const info = { url: tab.url(), title: tab.title() };
       tab.close();
       return info;
     }
     const lq = q.toLowerCase();
     let closed = null;
-    chrome.windows().forEach((win) => {
+    c.windows().forEach((win) => {
       if (closed) return;
       win.tabs().forEach((tab) => {
         if (closed) return;
@@ -235,19 +215,13 @@ server.registerTool('close_tab', {
 
 server.registerTool('reload', {
   description: 'Reload the active tab in the front Chrome window.',
-  inputSchema: {
-    bypass_cache: z.boolean().default(false).describe('If true, force-reload bypassing the cache (like Cmd+Shift+R)'),
-  },
-}, async ({ bypass_cache }) => {
-  await jxa((bypassCache) => {
-    const chrome = Application('Google Chrome');
-    if (chrome.windows.length === 0) throw new Error('No Chrome windows open.');
-    if (bypassCache) {
-      chrome.windows[0].activeTab.reload();
-    } else {
-      chrome.windows[0].activeTab.reload();
-    }
-  }, bypass_cache);
+  inputSchema: {},
+}, async () => {
+  await jxa(() => {
+    const c = Application('Google Chrome');
+    if (c.windows.length === 0) throw new Error('No Chrome windows open.');
+    c.windows[0].activeTab.reload();
+  });
   return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
 });
 
@@ -258,9 +232,9 @@ server.registerTool('go_back', {
   inputSchema: {},
 }, async () => {
   await jxa(() => {
-    const chrome = Application('Google Chrome');
-    if (chrome.windows.length === 0) throw new Error('No Chrome windows open.');
-    chrome.windows[0].activeTab.goBack();
+    const c = Application('Google Chrome');
+    if (c.windows.length === 0) throw new Error('No Chrome windows open.');
+    c.windows[0].activeTab.goBack();
   });
   return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
 });
@@ -272,9 +246,9 @@ server.registerTool('go_forward', {
   inputSchema: {},
 }, async () => {
   await jxa(() => {
-    const chrome = Application('Google Chrome');
-    if (chrome.windows.length === 0) throw new Error('No Chrome windows open.');
-    chrome.windows[0].activeTab.goForward();
+    const c = Application('Google Chrome');
+    if (c.windows.length === 0) throw new Error('No Chrome windows open.');
+    c.windows[0].activeTab.goForward();
   });
   return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
 });
@@ -288,137 +262,168 @@ server.registerTool('new_window', {
   },
 }, async ({ url }) => {
   await jxa((u) => {
-    const chrome = Application('Google Chrome');
-    if (u) {
-      chrome.open(u);
-    } else {
-      chrome.make({ new: 'window' });
-    }
-    chrome.activate();
+    const c = Application('Google Chrome');
+    if (u) c.open(u); else c.make({ new: 'window' });
+    c.activate();
   }, url);
   return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
 });
 
-// ── CDP Tools ─────────────────────────────────────────────────────────────────
+// ── Layer 2: CDP tools ────────────────────────────────────────────────────────
+
+server.registerTool('enable_cdp', {
+  description: `Launch a CDP-enabled Chrome window for JS execution and page inspection.
+Opens a separate Chrome instance (profile at /tmp/chrome-cdp) alongside the user's regular Chrome.
+Only needs to be called once per session; if CDP is already available it returns immediately.
+After this, use navigate to load a page, then execute_javascript / get_page_source / get_page_text / take_screenshot.`,
+  inputSchema: {},
+}, async () => {
+  // Already up?
+  try {
+    const res = await fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(1500) });
+    if (res.ok) {
+      const info = await res.json();
+      return { content: [{ type: 'text', text: JSON.stringify({ already_enabled: true, browser: info.Browser }) }] };
+    }
+  } catch { /* not up yet */ }
+
+  // Launch CDP Chrome (separate profile, runs alongside regular Chrome)
+  execFile('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
+    `--remote-debugging-port=${CDP_PORT}`,
+    `--user-data-dir=${CDP_USER_DATA_DIR}`,
+    '--no-first-run',
+    '--no-default-browser-check',
+  ]);
+
+  // Poll until the port opens (up to 15s)
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 800));
+    try {
+      const res = await fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(1000) });
+      if (res.ok) {
+        const info = await res.json();
+        return { content: [{ type: 'text', text: JSON.stringify({ success: true, browser: info.Browser, port: CDP_PORT }) }] };
+      }
+    } catch { /* not ready yet */ }
+  }
+  throw new Error('CDP Chrome launched but port did not open within 15 seconds.');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_debug_status', {
-  description: `Check if Chrome DevTools Protocol (CDP) is available and return version info.
-CDP requires Chrome to be launched with --remote-debugging-port=9222:
-  open -a "Google Chrome" --args --remote-debugging-port=9222
-Returns {available, browser, protocol_version} when connected, or {available: false, hint} if not.`,
+  description: 'Check if CDP is available. Returns {available, browser, tab_count} or {available: false}. Call enable_cdp to start it.',
   inputSchema: {},
 }, async () => {
   try {
-    const res = await fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(2000) });
-    const info = await res.json();
+    const [versionRes, tabsRes] = await Promise.all([
+      fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(2000) }),
+      fetch(`${CDP_BASE}/json`, { signal: AbortSignal.timeout(2000) }),
+    ]);
+    const info = await versionRes.json();
+    const tabs = await tabsRes.json();
     return { content: [{ type: 'text', text: JSON.stringify({
       available: true,
       browser: info.Browser,
-      protocol_version: info['Protocol-Version'],
-      user_agent: info['User-Agent'],
-      v8_version: info['V8-Version'],
+      tab_count: tabs.filter(t => t.type === 'page').length,
     }) }] };
   } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({
-      available: false,
-      hint: CDP_NOT_AVAILABLE,
-    }) }] };
+    return { content: [{ type: 'text', text: JSON.stringify({ available: false, hint: 'Call enable_cdp to start a CDP-enabled Chrome window.' }) }] };
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+server.registerTool('navigate', {
+  description: 'Navigate the CDP Chrome window to a URL. Call enable_cdp first if needed.',
+  inputSchema: {
+    url: z.string().describe('URL to navigate to'),
+    wait_ms: z.number().default(2000).describe('Milliseconds to wait for page load after navigation'),
+  },
+}, async ({ url, wait_ms }) => {
+  const page = await cdpActivePage();
+  await cdpCall(page.webSocketDebuggerUrl, 'Page.navigate', { url });
+  if (wait_ms > 0) await new Promise(r => setTimeout(r, wait_ms));
+  // Re-fetch to get updated title
+  const updated = (await cdpTargets()).find(t => t.type === 'page');
+  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url: updated?.url ?? url, title: updated?.title ?? '' }) }] };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('execute_javascript', {
-  description: `Run JavaScript in the active Chrome tab and return the result.
-Requires Chrome launched with --remote-debugging-port=9222.
-The expression result is returned as a JSON value.
-Example: expression="document.title" → "My Page Title"
+  description: `Run JavaScript in the active CDP Chrome tab and return the result.
+Call enable_cdp first, then navigate to the page you want to inspect.
+Example: expression="document.title" → "My Page"
 Example: expression="document.querySelectorAll('a').length" → 42`,
   inputSchema: {
-    expression: z.string().describe('JavaScript expression to evaluate in the active tab'),
-    await_promise: z.boolean().default(false).describe('If true, await the result if it is a Promise'),
+    expression:    z.string().describe('JavaScript expression to evaluate'),
+    await_promise: z.boolean().default(false).describe('Await the result if it is a Promise'),
   },
 }, async ({ expression, await_promise }) => {
-  const target = await cdpActiveTarget();
-  const result = await cdpCall(target.webSocketDebuggerUrl, 'Runtime.evaluate', {
+  const page = await cdpActivePage();
+  const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
     expression,
     returnByValue: true,
     awaitPromise: await_promise,
   });
-  const value = result?.result?.value;
-  const type = result?.result?.type;
-  const exceptionDetail = result?.exceptionDetails;
-  if (exceptionDetail) {
-    throw new Error(`JS error: ${exceptionDetail.exception?.description ?? exceptionDetail.text}`);
+  if (result?.exceptionDetails) {
+    throw new Error(`JS error: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ type, value }) }] };
+  return { content: [{ type: 'text', text: JSON.stringify({ type: result?.result?.type, value: result?.result?.value }) }] };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_source', {
-  description: `Get the full HTML source of the active Chrome tab.
-Requires Chrome launched with --remote-debugging-port=9222.
-Returns the complete outerHTML of the page.`,
+  description: 'Get the full HTML source of the active CDP Chrome tab. Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
 }, async () => {
-  const target = await cdpActiveTarget();
-  const result = await cdpCall(target.webSocketDebuggerUrl, 'Runtime.evaluate', {
+  const page = await cdpActivePage();
+  const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
     expression: 'document.documentElement.outerHTML',
     returnByValue: true,
   });
   const html = result?.result?.value ?? '';
-  return { content: [{ type: 'text', text: JSON.stringify({ url: target.url, title: target.title, length: html.length, html }) }] };
+  return { content: [{ type: 'text', text: JSON.stringify({ url: page.url, title: page.title, length: html.length, html }) }] };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_text', {
-  description: `Get the readable text content of the active Chrome tab (strips HTML tags).
-Requires Chrome launched with --remote-debugging-port=9222.
-Uses document.body.innerText — returns what the user sees as text.`,
+  description: 'Get the readable text content of the active CDP Chrome tab (strips HTML). Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
 }, async () => {
-  const target = await cdpActiveTarget();
-  const result = await cdpCall(target.webSocketDebuggerUrl, 'Runtime.evaluate', {
+  const page = await cdpActivePage();
+  const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
     expression: 'document.body ? document.body.innerText : ""',
     returnByValue: true,
   });
   const text = result?.result?.value ?? '';
-  return { content: [{ type: 'text', text: JSON.stringify({ url: target.url, title: target.title, length: text.length, text }) }] };
+  return { content: [{ type: 'text', text: JSON.stringify({ url: page.url, title: page.title, length: text.length, text }) }] };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('take_screenshot', {
-  description: `Capture a screenshot of the active Chrome tab as a base64-encoded PNG.
-Requires Chrome launched with --remote-debugging-port=9222.
-Returns {url, title, format: "png", data: "<base64>"}.`,
+  description: 'Capture a screenshot of the active CDP Chrome tab as a base64-encoded PNG. Call enable_cdp first.',
   inputSchema: {
-    full_page: z.boolean().default(false).describe('If true, capture the full scrollable page (not just the viewport)'),
-    quality:   z.number().min(0).max(100).default(80).describe('JPEG quality 0-100 (only applies if format is jpeg; PNG is lossless)'),
+    full_page: z.boolean().default(false).describe('Capture the full scrollable page, not just the viewport'),
   },
 }, async ({ full_page }) => {
-  const target = await cdpActiveTarget();
+  const page = await cdpActivePage();
   const params = { format: 'png', captureBeyondViewport: full_page };
   if (full_page) {
-    // Get full page dimensions first
-    const metrics = await cdpCall(target.webSocketDebuggerUrl, 'Page.getLayoutMetrics', {});
+    const metrics = await cdpCall(page.webSocketDebuggerUrl, 'Page.getLayoutMetrics', {});
     const { contentSize } = metrics;
-    params.clip = {
-      x: 0, y: 0,
-      width: contentSize.width,
-      height: contentSize.height,
-      scale: 1,
-    };
+    params.clip = { x: 0, y: 0, width: contentSize.width, height: contentSize.height, scale: 1 };
   }
-  const result = await cdpCall(target.webSocketDebuggerUrl, 'Page.captureScreenshot', params);
+  const result = await cdpCall(page.webSocketDebuggerUrl, 'Page.captureScreenshot', params);
   const data = result?.data ?? '';
   return { content: [{ type: 'text', text: JSON.stringify({
-    url: target.url,
-    title: target.title,
-    format: 'png',
-    full_page,
+    url: page.url, title: page.title,
+    format: 'png', full_page,
     size_bytes: Math.round(data.length * 0.75),
     data,
   }) }] };
