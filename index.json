@@ -145,6 +145,25 @@
             "path": "tools/openai"
         },
         {
+            "id": "quicktime",
+            "name": "QuickTime Player",
+            "description": "Control QuickTime Player via AppleScript. Record audio (microphone \u2192 M4A) and screen (full screen \u2192 MOV), open media files, and list open documents. On first use macOS will ask permission to control QuickTime \u2014 click Allow once.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "quicktime",
+                "audio",
+                "recording",
+                "screen-recording",
+                "video",
+                "macos",
+                "applescript"
+            ],
+            "path": "tools/quicktime"
+        },
+        {
             "id": "safari",
             "name": "Safari",
             "description": "Control Safari tabs and windows via AppleScript. Includes JS execution, page source and text via 'Allow JavaScript from Apple Events' (no extension or debug port needed).",
@@ -162,25 +181,6 @@
                 "javascript"
             ],
             "path": "tools/safari"
-        },
-        {
-            "id": "quicktime",
-            "name": "QuickTime Player",
-            "description": "Control QuickTime Player via AppleScript. Record audio from the microphone (start/stop/status \u2192 M4A), open the screen recording toolbar, open media files, and list open documents.",
-            "version": "1.0.0",
-            "platform": [
-                "darwin"
-            ],
-            "tags": [
-                "quicktime",
-                "audio",
-                "recording",
-                "screen-recording",
-                "video",
-                "macos",
-                "applescript"
-            ],
-            "path": "tools/quicktime"
         },
         {
             "id": "vscode",
