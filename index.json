@@ -6,17 +6,33 @@
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
             "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["bash", "shell", "terminal", "macos", "developer", "scripts"],
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "bash",
+                "shell",
+                "terminal",
+                "macos",
+                "developer",
+                "scripts"
+            ],
             "path": "tools/bash"
         },
         {
             "id": "clipboard",
             "name": "Clipboard",
-            "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text and clipboard history.",
+            "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
             "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["clipboard", "text", "macos", "system"],
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "clipboard",
+                "text",
+                "macos",
+                "system"
+            ],
             "path": "tools/clipboard"
         },
         {
@@ -24,8 +40,17 @@
             "name": "Launcher",
             "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
             "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["launch", "open", "finder", "app", "url", "folder"],
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "launch",
+                "open",
+                "finder",
+                "app",
+                "url",
+                "folder"
+            ],
             "path": "tools/launcher"
         },
         {
@@ -33,35 +58,73 @@
             "name": "Obsidian",
             "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
             "version": "1.0.0",
-            "platform": ["darwin", "linux", "win32"],
-            "tags": ["notes", "obsidian", "markdown", "knowledge-base"],
+            "platform": [
+                "darwin",
+                "linux",
+                "win32"
+            ],
+            "tags": [
+                "notes",
+                "obsidian",
+                "markdown",
+                "knowledge-base"
+            ],
             "path": "tools/obsidian"
         },
         {
             "id": "openai",
             "name": "OpenAI",
-            "description": "Call GPT models with structured JSON output and transcribe audio files with Whisper. Requires OPENAI_API_KEY.",
+            "description": "Structured LLM calls (GPT-4o, gpt-4o-mini) and Whisper audio transcription. Both tools share a single API key.",
             "version": "1.0.0",
-            "platform": ["darwin", "linux", "win32"],
-            "tags": ["openai", "llm", "gpt", "whisper", "transcription", "ai"],
+            "platform": [
+                "darwin",
+                "linux",
+                "win32"
+            ],
+            "tags": [
+                "llm",
+                "openai",
+                "ai",
+                "structured-output",
+                "whisper",
+                "transcription"
+            ],
             "path": "tools/openai"
         },
         {
             "id": "voice-recorder",
             "name": "Voice Recorder",
-            "description": "Start and stop microphone recordings on macOS via QuickTime Player. Returns file paths for use with transcription tools.",
+            "description": "Start and stop microphone recordings on macOS. Returns file paths for use with transcription tools. Uses AVFoundation via PyObjC \u2014 no Homebrew dependencies.",
             "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["audio", "recording", "microphone", "macos", "voice"],
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "audio",
+                "recording",
+                "microphone",
+                "macos",
+                "voice"
+            ],
             "path": "tools/voice-recorder"
         },
         {
             "id": "vscode",
             "name": "VS Code",
-            "description": "Control VS Code windows — toggle sidebar/terminal/panels, run any command, create terminals, open folders. Requires the nicollasr.vscode-streamdeck extension.",
+            "description": "Control VS Code windows \u2014 toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
             "version": "1.0.0",
-            "platform": ["darwin", "linux", "win32"],
-            "tags": ["vscode", "editor", "terminal", "sidebar", "development"],
+            "platform": [
+                "darwin",
+                "win32",
+                "linux"
+            ],
+            "tags": [
+                "vscode",
+                "editor",
+                "terminal",
+                "sidebar",
+                "development"
+            ],
             "path": "tools/vscode"
         },
         {
@@ -69,8 +132,17 @@
             "name": "Window Management",
             "description": "Move, resize and snap windows across screens. Get frontmost app, list open windows, snap to halves/quarters, and manage multiple displays.",
             "version": "1.0.0",
-            "platform": ["darwin"],
-            "tags": ["windows", "resize", "move", "screens", "layout", "macos"],
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "windows",
+                "resize",
+                "move",
+                "screens",
+                "layout",
+                "macos"
+            ],
             "path": "tools/window_management"
         }
     ]
