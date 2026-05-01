@@ -297,59 +297,78 @@ Requires Accessibility access for the plugin (System Preferences > Privacy & Sec
     }
   }
 
-  // Step 1: Make sure the Develop menu is visible by enabling it via Settings > Advanced
+  // Step 1: Ensure Develop menu is visible (Safari Settings > Advanced > Show features for web developers)
   try {
     await as(`
       tell application "Safari" to activate
       delay 0.3
       tell application "System Events"
         tell process "Safari"
-          -- Check if Develop menu already exists
           set menuNames to name of every menu bar item of menu bar 1
           if menuNames does not contain "Develop" then
-            -- Open Settings, go to Advanced tab, enable developer features
             keystroke "," using {command down}
             delay 1
-            tell window 1
-              -- Click Advanced tab (last tab in Settings)
-              click button "Advanced" of toolbar 1
-              delay 0.5
-              -- Check "Show features for web developers"
-              set devCheck to checkbox "Show features for web developers" of window 1
-              if value of devCheck is 0 then click devCheck
-            end tell
+            click button "Advanced" of toolbar 1 of window 1
+            delay 0.5
+            set devCheck to checkbox "Show features for web developers" of window 1
+            if value of devCheck is 0 then click devCheck
             delay 0.5
             keystroke "w" using {command down}
-            delay 0.3
+            delay 0.5
           end if
         end tell
       end tell
     `, 12000);
-  } catch { /* Settings approach failed — Develop menu may already be there */ }
+  } catch { /* Develop menu may already be visible */ }
 
-  // Step 2: Click Develop > Allow JavaScript from Apple Events
+  // Step 2: Open Develop > Developer Settings and enable the checkbox
+  // (Safari 18+ moved "Allow JavaScript from Apple Events" into Developer Settings)
   try {
     await as(`
       tell application "Safari" to activate
       delay 0.3
       tell application "System Events"
         tell process "Safari"
+          -- Try old location first: Develop menu item directly
+          try
+            tell menu bar 1
+              tell menu bar item "Develop"
+                tell menu "Develop"
+                  set allowItem to menu item "Allow JavaScript from Apple Events"
+                  if value of allowItem is 0 then click allowItem
+                end tell
+              end tell
+            end tell
+            return "done_old"
+          end try
+          -- New location (Safari 18+): Develop > Developer Settings > checkbox
           tell menu bar 1
             tell menu bar item "Develop"
               tell menu "Develop"
-                set allowItem to menu item "Allow JavaScript from Apple Events"
-                if value of allowItem is 0 then click allowItem
+                click menu item "Developer Settings…"
               end tell
             end tell
           end tell
+          delay 1.5
+          set allEls to entire contents of window 1
+          repeat with el in allEls
+            if class of el is checkbox and name of el is "Allow JavaScript from Apple Events" then
+              if value of el is 0 then click el
+              delay 0.3
+              keystroke "w" using {command down}
+              return "done_new"
+            end if
+          end repeat
+          keystroke "w" using {command down}
+          return "checkbox_not_found"
         end tell
       end tell
-    `, 8000);
-    return { content: [{ type: 'text', text: JSON.stringify({ success: true, method: 'menu_click' }) }] };
-  } catch (menuErr) {
+    `, 12000);
+    return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  } catch (err) {
     return { content: [{ type: 'text', text: JSON.stringify({
       success: false,
-      hint: 'Please enable manually: Safari > Settings > Advanced > Show features for web developers, then Safari > Develop > Allow JavaScript from Apple Events.',
+      hint: 'Enable manually: Safari > Develop > Developer Settings > Allow JavaScript from Apple Events. If no Develop menu: Safari Settings > Advanced > Show features for web developers.',
     }) }] };
   }
 });
