@@ -1,245 +1,413 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { spawnSync } from 'node:child_process';
 import { z } from 'zod';
-import { readFile, writeFile, readdir, stat, unlink, rename, mkdir } from 'node:fs/promises';
-import { existsSync, statSync } from 'node:fs';
-import nodePath from 'node:path';
-import os from 'node:os';
 
-const server = new McpServer({ name: 'obsidian', version: '1.0.0' });
+const server = new McpServer({ name: 'obsidian', version: '2.0.0' });
 
-// ── Vault helpers ────────────────────────────────────────────────────────────
+// ── CLI helpers ──────────────────────────────────────────────────────────────
 
-function getVault() {
-  const vp = (process.env.OBSIDIAN_VAULT_PATH || '').trim();
-  if (!vp) throw new Error('OBSIDIAN_VAULT_PATH is not set. Configure it via install_tool_pack or configure_tool_pack.');
-  const p = nodePath.resolve(vp.replace(/^~/, os.homedir()));
-  if (!existsSync(p) || !statSync(p).isDirectory())
-    throw new Error(`Vault path does not exist or is not a directory: ${p}`);
-  return p;
+/**
+ * Run an obsidian CLI command, return trimmed stdout.
+ * Strips loader/update-warning lines that Obsidian writes to stdout before the
+ * real output (e.g. "2026-05-17 11:00:00 Loading updated app package …" and
+ * "Your Obsidian installer is out of date …").
+ * Throws if the cleaned output starts with "Error:" (CLI error format).
+ */
+function cli(...args) {
+  const result = spawnSync('obsidian', args, { encoding: 'utf8' });
+  const cleaned = (result.stdout ?? '')
+    .split('\n')
+    .filter(l => !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} /.test(l) && !l.startsWith('Your Obsidian installer'))
+    .join('\n')
+    .trim();
+  if (cleaned.startsWith('Error:')) throw new Error(cleaned.replace(/^Error:\s*/, ''));
+  return cleaned;
 }
 
-function safePath(vaultRoot, rel) {
-  if (!rel.endsWith('.md')) rel = rel + '.md';
-  const candidate = nodePath.resolve(vaultRoot, rel);
-  if (!candidate.startsWith(vaultRoot)) throw new Error(`Path traversal rejected: ${rel}`);
-  return candidate;
+/** Run CLI and parse stdout as JSON. Returns parsed value, or [] / {} on empty. */
+function cliJSON(fallback, ...args) {
+  const out = cli(...args);
+  if (!out || out === 'No backlinks found.' || out === 'No results found.') return fallback;
+  return JSON.parse(out);
 }
 
-async function* walkMd(dir) {
-  let entries;
-  try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
-  for (const entry of entries) {
-    const full = nodePath.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name !== '.obsidian') yield* walkMd(full);
-    } else if (entry.name.endsWith('.md')) {
-      yield full;
-    }
+/** Parse "key\tvalue\n..." TSV vault info into an object. */
+function parseTSV(text) {
+  const obj = {};
+  for (const line of text.split('\n')) {
+    const tab = line.indexOf('\t');
+    if (tab !== -1) obj[line.slice(0, tab)] = line.slice(tab + 1).trim();
   }
-}
-
-async function* walkDirs(dir) {
-  let entries;
-  try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name === '.obsidian') continue;
-    const full = nodePath.join(dir, entry.name);
-    yield full;
-    yield* walkDirs(full);
-  }
+  return obj;
 }
 
 // ── Tools ────────────────────────────────────────────────────────────────────
 
+// ── Notes ────────────────────────────────────────────────────────────────────
+
 server.registerTool('list_notes', {
-  description: 'List all Markdown notes in the vault (or a sub-folder). Returns [{path, name, modified}] sorted by modification time descending.',
+  description: 'List markdown files in the vault or a sub-folder. Returns [{path, name}] sorted by path.',
   inputSchema: {
-    folder: z.string().default('').describe('Relative path to a sub-folder (empty = entire vault)'),
+    folder: z.string().default('').describe('Sub-folder to filter by (empty = entire vault)'),
   },
-}, async ({ folder }) => {
-  const root = getVault();
-  const base = folder ? nodePath.resolve(root, folder) : root;
-  const results = [];
-  for await (const f of walkMd(base)) {
-    const s = await stat(f);
-    results.push({
-      path: nodePath.relative(root, f),
-      name: nodePath.basename(f, '.md'),
-      modified: new Date(s.mtimeMs).toISOString(),
-    });
-  }
-  results.sort((a, b) => b.modified.localeCompare(a.modified));
-  return { content: [{ type: 'text', text: JSON.stringify(results) }] };
+  outputSchema: {
+    results: z.array(z.object({ path: z.string(), name: z.string() })),
+  },
+}, ({ folder }) => {
+  const args = ['files'];
+  if (folder) args.push(`folder=${folder}`);
+  const out = cli(...args);
+  const results = out ? out.split('\n').filter(Boolean).map(p => ({
+    path: p,
+    name: p.split('/').pop().replace(/\.md$/, ''),
+  })) : [];
+  return { structuredContent: { results } };
 });
 
 server.registerTool('read_note', {
-  description: 'Read a note from the vault. Returns {path, name, content, modified}.',
+  description: 'Read a note by name (wikilink-style) or exact path. Returns {path, content}.',
   inputSchema: {
-    path: z.string().describe('Relative path to the note (e.g. "folder/My Note.md" or "My Note")'),
+    file: z.string().describe('Note name (e.g. "My Note") — resolves like a wikilink across the vault'),
   },
-}, async ({ path: notePath }) => {
-  const root = getVault();
-  const full = safePath(root, notePath);
-  if (!existsSync(full)) throw new Error(`Note not found: ${notePath}`);
-  const content = await readFile(full, 'utf8');
-  const s = await stat(full);
-  return { content: [{ type: 'text', text: JSON.stringify({
-    path: nodePath.relative(root, full),
-    name: nodePath.basename(full, '.md'),
-    content,
-    modified: new Date(s.mtimeMs).toISOString(),
-  }) }] };
+  outputSchema: {
+    path: z.string(),
+    content: z.string(),
+  },
+}, ({ file }) => {
+  const path = cli('file', `file=${file}`, 'info=path').trim();
+  const content = cli('read', `file=${file}`);
+  return { structuredContent: { path, content } };
 });
 
 server.registerTool('write_note', {
-  description: 'Create or overwrite a note in the vault. Returns {path, created}.',
+  description: 'Create a new note. Returns {path, created: true}.',
   inputSchema: {
-    path: z.string().describe('Relative path (e.g. "folder/My Note.md" or "My Note")'),
-    content: z.string().describe('Full Markdown content'),
-    overwrite: z.boolean().default(true).describe('If false, raises an error when the note already exists'),
+    name: z.string().describe('Note name (without .md). Use slashes for sub-folders: "folder/Note Name"'),
+    content: z.string().default('').describe('Initial markdown content'),
+    overwrite: z.boolean().default(false).describe('Overwrite if the note already exists'),
   },
-}, async ({ path: notePath, content, overwrite }) => {
-  const root = getVault();
-  const full = safePath(root, notePath);
-  const existed = existsSync(full);
-  if (existed && !overwrite) throw new Error(`Note already exists: ${notePath}`);
-  await mkdir(nodePath.dirname(full), { recursive: true });
-  await writeFile(full, content, 'utf8');
-  return { content: [{ type: 'text', text: JSON.stringify({
-    path: nodePath.relative(root, full),
-    created: !existed,
-  }) }] };
+  outputSchema: {
+    path: z.string(),
+    created: z.boolean(),
+  },
+}, ({ name, content, overwrite }) => {
+  const args = ['create', `name=${name}`, `content=${content}`];
+  if (overwrite) args.push('overwrite');
+  const out = cli(...args);
+  // Output: "Created: folder/Note Name.md"
+  const path = out.replace(/^Created:\s*/, '');
+  return { structuredContent: { path, created: true } };
 });
 
 server.registerTool('append_to_note', {
-  description: "Append text to an existing note (creates it if it doesn't exist). Returns {path, length}.",
+  description: 'Append text to an existing note. Returns {path}.',
   inputSchema: {
-    path: z.string().describe('Relative path to the note'),
-    text: z.string().describe('Text to append (a newline is added before it if needed)'),
+    file: z.string().describe('Note name (wikilink-style)'),
+    content: z.string().describe('Text to append'),
   },
-}, async ({ path: notePath, text }) => {
-  const root = getVault();
-  const full = safePath(root, notePath);
-  await mkdir(nodePath.dirname(full), { recursive: true });
-  const existing = existsSync(full) ? await readFile(full, 'utf8') : '';
-  const separator = existing && !existing.endsWith('\n') ? '\n' : '';
-  const newContent = existing + separator + text;
-  await writeFile(full, newContent, 'utf8');
-  return { content: [{ type: 'text', text: JSON.stringify({
-    path: nodePath.relative(root, full),
-    length: newContent.length,
-  }) }] };
+  outputSchema: { path: z.string() },
+}, ({ file, content }) => {
+  const out = cli('append', `file=${file}`, `content=${content}`);
+  // Output: "Appended to: DS Team/folder/Note.md"
+  const path = out.replace(/^Appended to:\s*/, '');
+  return { structuredContent: { path } };
+});
+
+server.registerTool('prepend_to_note', {
+  description: 'Prepend text to an existing note. Returns {path}.',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+    content: z.string().describe('Text to prepend'),
+  },
+  outputSchema: { path: z.string() },
+}, ({ file, content }) => {
+  const out = cli('prepend', `file=${file}`, `content=${content}`);
+  const path = out.replace(/^Prepended to:\s*/, '');
+  return { structuredContent: { path } };
 });
 
 server.registerTool('delete_note', {
-  description: 'Delete a note from the vault. Returns {path, deleted}.',
+  description: 'Move a note to the Obsidian trash. Returns {path, deleted}.',
   inputSchema: {
-    path: z.string().describe('Relative path to the note'),
+    file: z.string().describe('Note name (wikilink-style)'),
   },
-}, async ({ path: notePath }) => {
-  const root = getVault();
-  const full = safePath(root, notePath);
-  if (!existsSync(full))
-    return { content: [{ type: 'text', text: JSON.stringify({ path: notePath, deleted: false, reason: 'not found' }) }] };
-  await unlink(full);
-  return { content: [{ type: 'text', text: JSON.stringify({ path: nodePath.relative(root, full), deleted: true }) }] };
-});
-
-server.registerTool('search_notes', {
-  description: 'Full-text search across all notes in the vault. Returns [{path, name, snippet, matches}] sorted by match count descending.',
-  inputSchema: {
-    query: z.string().describe('Search string (case-insensitive)'),
-    folder: z.string().default('').describe('Limit search to this sub-folder (empty = entire vault)'),
-    max_results: z.number().int().default(20).describe('Maximum number of results to return'),
-  },
-}, async ({ query, folder, max_results }) => {
-  const root = getVault();
-  const base = folder ? nodePath.resolve(root, folder) : root;
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(escaped, 'gi');
-  const results = [];
-  for await (const f of walkMd(base)) {
-    let text;
-    try { text = await readFile(f, 'utf8'); } catch { continue; }
-    const matchesArr = text.match(pattern);
-    if (!matchesArr) continue;
-    const firstIdx = text.search(new RegExp(escaped, 'i'));
-    const start = Math.max(0, firstIdx - 80);
-    const end = Math.min(text.length, firstIdx + query.length + 80);
-    const snippet = '...' + text.slice(start, end).replace(/\n/g, ' ').trim() + '...';
-    results.push({
-      path: nodePath.relative(root, f),
-      name: nodePath.basename(f, '.md'),
-      snippet,
-      matches: matchesArr.length,
-    });
-  }
-  results.sort((a, b) => b.matches - a.matches);
-  return { content: [{ type: 'text', text: JSON.stringify(results.slice(0, max_results)) }] };
-});
-
-server.registerTool('list_folders', {
-  description: 'List all sub-folders in the vault (excluding .obsidian internals). Returns sorted list of relative folder paths.',
-  inputSchema: {},
-}, async () => {
-  const root = getVault();
-  const folders = [];
-  for await (const d of walkDirs(root)) {
-    folders.push(nodePath.relative(root, d));
-  }
-  folders.sort();
-  return { content: [{ type: 'text', text: JSON.stringify(folders) }] };
+  outputSchema: { path: z.string(), deleted: z.boolean() },
+}, ({ file }) => {
+  const out = cli('delete', `file=${file}`);
+  const path = out.replace(/^Deleted:\s*/, '');
+  return { structuredContent: { path, deleted: true } };
 });
 
 server.registerTool('move_note', {
-  description: 'Move (rename) a note within the vault. Returns {old_path, new_path}.',
+  description: 'Move or rename a note within the vault. Returns {old_path, new_path}.',
   inputSchema: {
-    path: z.string().describe('Current relative path'),
-    new_path: z.string().describe('New relative path'),
+    file: z.string().describe('Note name (wikilink-style)'),
+    to: z.string().describe('Destination path relative to vault root (e.g. "Archive/Note.md")'),
   },
-}, async ({ path: notePath, new_path: newNotePath }) => {
-  const root = getVault();
-  const src = safePath(root, notePath);
-  const dst = safePath(root, newNotePath);
-  if (!existsSync(src)) throw new Error(`Note not found: ${notePath}`);
-  await mkdir(nodePath.dirname(dst), { recursive: true });
-  await rename(src, dst);
-  return { content: [{ type: 'text', text: JSON.stringify({
-    old_path: nodePath.relative(root, src),
-    new_path: nodePath.relative(root, dst),
-  }) }] };
+  outputSchema: { old_path: z.string(), new_path: z.string() },
+}, ({ file, to }) => {
+  const old_path = cli('file', `file=${file}`, 'info=path');
+  cli('move', `file=${file}`, `to=${to}`);
+  return { structuredContent: { old_path, new_path: to } };
 });
 
-server.registerTool('get_vault_stats', {
-  description: 'Return statistics about the vault. Returns {note_count, folder_count, vault_path, total_size_bytes}.',
+// ── Search ───────────────────────────────────────────────────────────────────
+
+server.registerTool('search_notes', {
+  description: 'Full-text search with matching line context. Returns [{file, matches:[{line, text}]}].',
+  inputSchema: {
+    query: z.string().describe('Search string'),
+    folder: z.string().optional().describe('Limit search to this sub-folder'),
+    limit: z.number().int().default(20).describe('Max number of matching files to return'),
+    case_sensitive: z.boolean().default(false).describe('Case-sensitive search'),
+  },
+  outputSchema: {
+    results: z.array(z.object({
+      file: z.string(),
+      matches: z.array(z.object({ line: z.number(), text: z.string() })),
+    })),
+  },
+}, ({ query, folder, limit, case_sensitive }) => {
+  const args = ['search:context', `query=${query}`, `limit=${limit}`, 'format=json'];
+  if (folder) args.push(`path=${folder}`);
+  if (case_sensitive) args.push('case');
+  const raw = cliJSON([], ...args);
+  // Normalise line numbers from strings to integers
+  const results = raw.map(r => ({
+    file: r.file,
+    matches: r.matches.map(m => ({ line: parseInt(m.line, 10), text: m.text })),
+  }));
+  return { structuredContent: { results } };
+});
+
+// ── Structure ────────────────────────────────────────────────────────────────
+
+server.registerTool('list_folders', {
+  description: 'List all folders in the vault. Returns array of folder paths.',
+  inputSchema: {
+    folder: z.string().optional().describe('Filter by parent folder'),
+  },
+  outputSchema: { folders: z.array(z.string()) },
+}, ({ folder }) => {
+  const args = ['folders'];
+  if (folder) args.push(`folder=${folder}`);
+  const out = cli(...args);
+  const folders = out ? out.split('\n').filter(Boolean) : [];
+  return { structuredContent: { folders } };
+});
+
+server.registerTool('get_outline', {
+  description: 'Get the heading structure of a note. Returns [{level, heading, line}].',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+  },
+  outputSchema: {
+    headings: z.array(z.object({ level: z.number(), heading: z.string(), line: z.number() })),
+  },
+}, ({ file }) => {
+  const raw = cliJSON([], 'outline', `file=${file}`, 'format=json');
+  const headings = raw.map(h => ({ level: h.level, heading: h.heading, line: parseInt(h.line, 10) }));
+  return { structuredContent: { headings } };
+});
+
+server.registerTool('get_backlinks', {
+  description: 'List notes that link to a given note. Returns [{file, count}].',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+  },
+  outputSchema: {
+    backlinks: z.array(z.object({ file: z.string(), count: z.number() })),
+  },
+}, ({ file }) => {
+  const raw = cliJSON([], 'backlinks', `file=${file}`, 'counts', 'format=json');
+  const backlinks = Array.isArray(raw)
+    ? raw.map(b => ({ file: b.file, count: parseInt(b.count ?? '1', 10) }))
+    : [];
+  return { structuredContent: { backlinks } };
+});
+
+// ── Metadata ─────────────────────────────────────────────────────────────────
+
+server.registerTool('get_properties', {
+  description: 'Read the frontmatter properties of a note. Returns the properties as a key/value object.',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+  },
+  outputSchema: { properties: z.record(z.unknown()) },
+}, ({ file }) => {
+  const properties = cliJSON({}, 'properties', `file=${file}`, 'format=json');
+  return { structuredContent: { properties } };
+});
+
+server.registerTool('set_property', {
+  description: 'Set a frontmatter property on a note. Returns {file, name, value}.',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+    name: z.string().describe('Property name'),
+    value: z.string().describe('Property value'),
+    type: z.enum(['text', 'list', 'number', 'checkbox', 'date', 'datetime']).default('text'),
+  },
+  outputSchema: { file: z.string(), name: z.string(), value: z.string() },
+}, ({ file, name, value, type }) => {
+  cli('property:set', `name=${name}`, `value=${value}`, `type=${type}`, `file=${file}`);
+  return { structuredContent: { file, name, value } };
+});
+
+server.registerTool('list_tags', {
+  description: 'List all tags in the vault (or in a specific note) with occurrence counts. Returns [{tag, count}].',
+  inputSchema: {
+    file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
+  },
+  outputSchema: {
+    tags: z.array(z.object({ tag: z.string(), count: z.number() })),
+  },
+}, ({ file }) => {
+  const args = ['tags', 'format=json', 'counts'];
+  if (file) args.push(`file=${file}`);
+  const raw = cliJSON([], ...args);
+  const tags = raw.map(t => ({ tag: t.tag, count: parseInt(t.count, 10) }));
+  return { structuredContent: { tags } };
+});
+
+// ── Tasks ────────────────────────────────────────────────────────────────────
+
+server.registerTool('list_tasks', {
+  description: 'List tasks across the vault or in a specific note. Returns [{status, text, file, line}].',
+  inputSchema: {
+    file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
+    filter: z.enum(['all', 'todo', 'done']).default('all').describe('Filter by completion status'),
+  },
+  outputSchema: {
+    tasks: z.array(z.object({
+      status: z.string().describe('Status character: space = todo, x = done, other = custom'),
+      text: z.string(),
+      file: z.string(),
+      line: z.number(),
+    })),
+  },
+}, ({ file, filter }) => {
+  const args = ['tasks', 'format=json'];
+  if (file) args.push(`file=${file}`);
+  if (filter === 'todo') args.push('todo');
+  if (filter === 'done') args.push('done');
+  const raw = cliJSON([], ...args);
+  const tasks = raw.map(t => ({
+    status: t.status,
+    text: t.text,
+    file: t.file,
+    line: parseInt(t.line, 10),
+  }));
+  return { structuredContent: { tasks } };
+});
+
+server.registerTool('toggle_task', {
+  description: 'Toggle a task between done and todo by file and line number. Returns {file, line, done}.',
+  inputSchema: {
+    file: z.string().describe('Note name (wikilink-style)'),
+    line: z.number().int().describe('Line number of the task (from list_tasks)'),
+  },
+  outputSchema: { file: z.string(), line: z.number(), done: z.boolean() },
+}, ({ file, line }) => {
+  const before = cliJSON([], 'tasks', `file=${file}`, 'format=json');
+  const task = before.find(t => parseInt(t.line, 10) === line);
+  const wasDone = task?.status === 'x';
+  cli('task', 'toggle', `file=${file}`, `line=${line}`);
+  return { structuredContent: { file, line, done: !wasDone } };
+});
+
+// ── Daily notes ──────────────────────────────────────────────────────────────
+
+server.registerTool('daily_read', {
+  description: "Read today's daily note. Returns {path, content}.",
   inputSchema: {},
-}, async () => {
-  const root = getVault();
-  let noteCount = 0, totalSize = 0, folderCount = 0;
-  async function walkStats(dir) {
-    let entries;
-    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
-    for (const entry of entries) {
-      const full = nodePath.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === '.obsidian') continue;
-        folderCount++;
-        await walkStats(full);
-      } else if (entry.name.endsWith('.md')) {
-        noteCount++;
-        const s = await stat(full);
-        totalSize += s.size;
-      }
-    }
-  }
-  await walkStats(root);
-  return { content: [{ type: 'text', text: JSON.stringify({
-    note_count: noteCount,
-    folder_count: folderCount,
-    vault_path: root,
-    total_size_bytes: totalSize,
-  }) }] };
+  outputSchema: { path: z.string(), content: z.string() },
+}, () => {
+  const path = cli('daily:path');
+  const content = cli('daily:read');
+  return { structuredContent: { path, content } };
+});
+
+server.registerTool('daily_append', {
+  description: "Append text to today's daily note (creates it if it doesn't exist). Returns {path}.",
+  inputSchema: {
+    content: z.string().describe('Text to append'),
+  },
+  outputSchema: { path: z.string() },
+}, ({ content }) => {
+  const out = cli('daily:append', `content=${content}`);
+  const path = out.replace(/^Appended to:\s*/, '');
+  return { structuredContent: { path } };
+});
+
+server.registerTool('daily_prepend', {
+  description: "Prepend text to today's daily note. Returns {path}.",
+  inputSchema: {
+    content: z.string().describe('Text to prepend'),
+  },
+  outputSchema: { path: z.string() },
+}, ({ content }) => {
+  const out = cli('daily:prepend', `content=${content}`);
+  const path = out.replace(/^Prepended to:\s*/, '');
+  return { structuredContent: { path } };
+});
+
+// ── Vault ────────────────────────────────────────────────────────────────────
+
+server.registerTool('get_vault_stats', {
+  description: 'Return vault statistics. Returns {name, path, files, folders, size_bytes}.',
+  inputSchema: {},
+  outputSchema: {
+    name: z.string(),
+    path: z.string(),
+    files: z.number(),
+    folders: z.number(),
+    size_bytes: z.number(),
+  },
+}, () => {
+  const raw = parseTSV(cli('vault'));
+  return { structuredContent: {
+    name: raw.name ?? '',
+    path: raw.path ?? '',
+    files: parseInt(raw.files ?? '0', 10),
+    folders: parseInt(raw.folders ?? '0', 10),
+    size_bytes: parseInt(raw.size ?? '0', 10),
+  } };
+});
+
+// ── Commands ─────────────────────────────────────────────────────────────────
+
+server.registerTool('execute_command', {
+  description: 'Execute any Obsidian command by its ID (e.g. "daily-notes:goto-today"). Use list_commands to discover IDs.',
+  inputSchema: {
+    id: z.string().describe('Command ID'),
+  },
+  outputSchema: { ok: z.boolean() },
+}, ({ id }) => {
+  cli('command', `id=${id}`);
+  return { structuredContent: { ok: true } };
+});
+
+server.registerTool('list_commands', {
+  description: 'List available Obsidian commands. Returns [{id, name}].',
+  inputSchema: {
+    filter: z.string().optional().describe('Filter by ID prefix (e.g. "daily-notes")'),
+  },
+  outputSchema: {
+    commands: z.array(z.object({ id: z.string(), name: z.string() })),
+  },
+}, ({ filter }) => {
+  const args = ['commands'];
+  if (filter) args.push(`filter=${filter}`);
+  const out = cli(...args);
+  // Output is one "id\tname" per line
+  const commands = out ? out.split('\n').filter(Boolean).map(line => {
+    const tab = line.indexOf('\t');
+    return tab !== -1
+      ? { id: line.slice(0, tab).trim(), name: line.slice(tab + 1).trim() }
+      : { id: line.trim(), name: line.trim() };
+  }) : [];
+  return { structuredContent: { commands } };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
