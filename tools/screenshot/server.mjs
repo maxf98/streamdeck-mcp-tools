@@ -4,8 +4,9 @@ import * as z from 'zod/v4';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, unlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 
 const execFileAsync = promisify(execFile);
 const server = new McpServer({ name: 'screenshot', version: '1.0.0' });
@@ -14,15 +15,44 @@ function sc(result) {
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 }
 
-async function captureToBase64(args) {
-  const path = `${tmpdir()}/mcp-screenshot-${randomUUID()}.png`;
+function defaultSavePath() {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  return join(homedir(), 'Desktop', `Screenshot-${ts}.png`);
+}
+
+async function captureToPath(screencaptureArgs, destPath) {
+  await execFileAsync('screencapture', [...screencaptureArgs, destPath]);
+}
+
+async function captureToBase64(screencaptureArgs) {
+  const tmp = join(tmpdir(), `mcp-screenshot-${randomUUID()}.png`);
   try {
-    await execFileAsync('screencapture', [...args, path]);
-    const buf = await readFile(path);
+    await execFileAsync('screencapture', [...screencaptureArgs, tmp]);
+    const buf = await readFile(tmp);
     return buf.toString('base64');
   } finally {
-    await unlink(path).catch(() => {});
+    await unlink(tmp).catch(() => {});
   }
+}
+
+async function getScreencaptureArgs(target, display, region) {
+  if (target === 'screen') {
+    return ['-x', '-D', String((display ?? 0) + 1)];
+  }
+  if (target === 'frontmost_window') {
+    const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e',
+      `const p = Application('System Events').processes.whose({ frontmost: true })[0];
+       const w = p.windows[0];
+       const pos = w.position();
+       const sz = w.size();
+       JSON.stringify({ x: pos[0], y: pos[1], width: sz[0], height: sz[1] })`
+    ]);
+    const b = JSON.parse(stdout.trim());
+    return ['-x', '-R', `${b.x},${b.y},${b.width},${b.height}`];
+  }
+  // region
+  if (!region) throw new Error('region param is required when target is "region"');
+  return ['-x', '-R', `${region.x},${region.y},${region.width},${region.height}`];
 }
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
@@ -30,15 +60,19 @@ async function captureToBase64(args) {
 server.registerTool('take_screenshot', {
   description:
     'Capture the screen, frontmost window, or a region as a PNG image. ' +
-    'Returns base64 image data the AI can see directly. ' +
+    'When save_path is provided (or omitted — defaults to Desktop), saves the file to disk and returns the path. ' +
+    'Pass save_path="base64" to get raw base64 image data instead (useful for AI vision). ' +
     'Use target="screen" for the full display, "frontmost_window" for the active app window, ' +
     'or "region" with explicit x/y/width/height coordinates.',
   inputSchema: {
     target: z.enum(['screen', 'frontmost_window', 'region']).default('screen').describe(
       'What to capture: full screen, frontmost window, or a screen region'
     ),
+    save_path: z.string().optional().describe(
+      'Where to save the PNG. Defaults to ~/Desktop/Screenshot-<timestamp>.png. Pass "base64" to return image data instead of saving.'
+    ),
     display: z.number().int().min(0).optional().describe(
-      '0-based display index for screen capture (default: 0, i.e. main display)'
+      '0-based display index for screen capture (default: 0)'
     ),
     region: z.object({
       x: z.number().describe('Left edge in screen coordinates'),
@@ -50,33 +84,22 @@ server.registerTool('take_screenshot', {
   outputSchema: {
     success: z.boolean(),
     target: z.string(),
+    path: z.string().optional(),
   },
-}, async ({ target, display = 0, region }) => {
-  let base64;
+}, async ({ target, save_path, display, region }) => {
+  const args = await getScreencaptureArgs(target, display, region);
 
-  if (target === 'screen') {
-    base64 = await captureToBase64(['-x', '-D', String(display + 1)]);
-
-  } else if (target === 'frontmost_window') {
-    const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e',
-      `const p = Application('System Events').processes.whose({ frontmost: true })[0];
-       const w = p.windows[0];
-       const pos = w.position();
-       const sz = w.size();
-       JSON.stringify({ x: pos[0], y: pos[1], width: sz[0], height: sz[1] })`
-    ]);
-    const b = JSON.parse(stdout.trim());
-    base64 = await captureToBase64(['-x', '-R', `${b.x},${b.y},${b.width},${b.height}`]);
-
-  } else {
-    if (!region) throw new Error('region param is required when target is "region"');
-    base64 = await captureToBase64(['-x', '-R', `${region.x},${region.y},${region.width},${region.height}`]);
+  if (save_path === 'base64') {
+    const base64 = await captureToBase64(args);
+    return {
+      content: [{ type: 'image', data: base64, mimeType: 'image/png' }],
+      structuredContent: { success: true, target },
+    };
   }
 
-  return {
-    content: [{ type: 'image', data: base64, mimeType: 'image/png' }],
-    structuredContent: { success: true, target },
-  };
+  const dest = save_path ?? defaultSavePath();
+  await captureToPath(args, dest);
+  return sc({ success: true, target, path: dest });
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
