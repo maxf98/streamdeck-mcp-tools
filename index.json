@@ -218,6 +218,24 @@
                 "macos"
             ],
             "path": "tools/window_management"
+        },
+        {
+            "id": "screenshot",
+            "name": "Screenshot",
+            "description": "Capture the screen, frontmost window, or a region as a PNG image. Returns base64-encoded image data.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "screenshot",
+                "screen",
+                "capture",
+                "vision",
+                "image",
+                "macos"
+            ],
+            "path": "tools/screenshot"
         }
     ]
 }
