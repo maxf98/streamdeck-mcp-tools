@@ -75,6 +75,73 @@ server.registerTool('call_llm', {
   return { content: [{ type: 'text', text: content }] };
 });
 
+server.registerTool('analyze_image', {
+  description:
+    'Send an image to a GPT vision model with a prompt and get back an analysis. ' +
+    'Provide either image_path (absolute path to a PNG/JPG) or image_base64 (raw base64 string). ' +
+    'Optionally provide a JSON schema to get structured output — same format as call_llm.',
+  inputSchema: {
+    prompt: z.string().describe('Question or instruction about the image'),
+    image_path: z.string().optional().describe('Absolute path to a PNG or JPG file'),
+    image_base64: z.string().optional().describe('Raw base64-encoded image data (PNG or JPG)'),
+    image_mime: z.string().default('image/png').describe('MIME type when using image_base64 (default: image/png)'),
+    schema: z.record(z.any()).optional().describe('Optional JSON Schema for structured output (same format as call_llm)'),
+    system_prompt: z.string().default('').describe('Optional system prompt'),
+    model: z.string().default('gpt-4o-mini').describe('OpenAI vision model (default: gpt-4o-mini)'),
+    max_tokens: z.number().int().default(1024).describe('Max tokens in the response'),
+  },
+}, async ({ prompt, image_path, image_base64, image_mime, schema, system_prompt, model, max_tokens }) => {
+  const key = apiKey();
+
+  let base64Data;
+  let mimeType = image_mime;
+
+  if (image_path) {
+    if (!existsSync(image_path)) throw new Error(`File not found: ${image_path}`);
+    const ext = nodePath.extname(image_path).toLowerCase();
+    mimeType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+    base64Data = (await readFile(image_path)).toString('base64');
+  } else if (image_base64) {
+    base64Data = image_base64;
+  } else {
+    throw new Error('Provide either image_path or image_base64');
+  }
+
+  const imageContent = {
+    type: 'image_url',
+    image_url: { url: `data:${mimeType};base64,${base64Data}`, detail: 'auto' },
+  };
+
+  const userMessage = { role: 'user', content: [{ type: 'text', text: prompt }, imageContent] };
+  const messages = [];
+  if (system_prompt) messages.push({ role: 'system', content: system_prompt });
+  messages.push(userMessage);
+
+  const body = { model, messages, max_tokens };
+  if (schema) {
+    const schemaCopy = { ...schema };
+    const schemaName = schemaCopy.name ?? 'response';
+    delete schemaCopy.name;
+    body.response_format = { type: 'json_schema', json_schema: { name: schemaName, strict: true, schema: schemaCopy } };
+  }
+
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) throw new Error(`OpenAI API error ${resp.status}: ${await resp.text()}`);
+
+  const data = await resp.json();
+  const choice = (data.choices ?? [{}])[0];
+  if (choice?.message?.refusal) throw new Error(`LLM refused: ${choice.message.refusal}`);
+  const content = choice?.message?.content;
+  if (!content) throw new Error('Empty response from OpenAI');
+
+  return { content: [{ type: 'text', text: content }] };
+});
+
 server.registerTool('transcribe_file', {
   description: 'Transcribe an audio file using OpenAI Whisper. Accepts M4A, MP4, MP3, WAV, WebM, FLAC, OGG, etc. Returns {transcript, path}.',
   inputSchema: {
