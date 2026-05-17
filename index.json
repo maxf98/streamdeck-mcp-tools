@@ -183,6 +183,24 @@
             "path": "tools/safari"
         },
         {
+            "id": "screenshot",
+            "name": "Screenshot",
+            "description": "Capture the screen, frontmost window, or a region as a PNG image. Returns base64-encoded image data.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "screenshot",
+                "screen",
+                "capture",
+                "vision",
+                "image",
+                "macos"
+            ],
+            "path": "tools/screenshot"
+        },
+        {
             "id": "vscode",
             "name": "VS Code",
             "description": "Control VS Code windows \u2014 toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
@@ -218,24 +236,6 @@
                 "macos"
             ],
             "path": "tools/window_management"
-        },
-        {
-            "id": "screenshot",
-            "name": "Screenshot",
-            "description": "Capture the screen, frontmost window, or a region as a PNG image. Returns base64-encoded image data.",
-            "version": "1.0.0",
-            "platform": [
-                "darwin"
-            ],
-            "tags": [
-                "screenshot",
-                "screen",
-                "capture",
-                "vision",
-                "image",
-                "macos"
-            ],
-            "path": "tools/screenshot"
         }
     ]
 }
