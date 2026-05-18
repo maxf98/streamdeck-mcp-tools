@@ -55,6 +55,10 @@ server.registerTool('open_url', {
     url:        z.string().describe('URL to open (e.g. "https://example.com")'),
     new_window: z.boolean().default(false).describe('Open in a new window instead of a new tab'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    url:     z.string(),
+  }),
 }, async ({ url, new_window }) => {
   const escaped = url.replace(/"/g, '\\"');
   if (new_window) {
@@ -79,7 +83,8 @@ server.registerTool('open_url', {
       end tell
     `);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url }) }] };
+  const result = { success: true, url };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,6 +92,10 @@ server.registerTool('open_url', {
 server.registerTool('get_active_tab', {
   description: 'Get the URL and title of the currently active tab in the front Safari window.',
   inputSchema: {},
+  outputSchema: z.object({
+    url:   z.string(),
+    title: z.string(),
+  }),
 }, async () => {
   const raw = await as(`
     tell application "Safari"
@@ -97,7 +106,8 @@ server.registerTool('get_active_tab', {
   `);
   if (raw === 'NO_WINDOW') throw new Error('No Safari windows open.');
   const [url, ...rest] = raw.split('|||');
-  return { content: [{ type: 'text', text: JSON.stringify({ url, title: rest.join('|||') }) }] };
+  const result = { url, title: rest.join('|||') };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,6 +115,16 @@ server.registerTool('get_active_tab', {
 server.registerTool('list_tabs', {
   description: 'List all open tabs across all Safari windows. Returns [{window_index, tab_index, url, title, active}].',
   inputSchema: {},
+  outputSchema: z.object({
+    count: z.number(),
+    tabs:  z.array(z.object({
+      window_index: z.number(),
+      tab_index:    z.number(),
+      url:          z.string(),
+      title:        z.string(),
+      active:       z.boolean(),
+    })),
+  }),
 }, async () => {
   const raw = await as(`
     tell application "Safari"
@@ -131,7 +151,8 @@ server.registerTool('list_tabs', {
       url, title, active,
     };
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ count: tabs.length, tabs }) }] };
+  const result = { count: tabs.length, tabs };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,6 +162,15 @@ server.registerTool('focus_tab', {
   inputSchema: {
     query: z.string().describe('Substring to match against tab URL or title'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    tab:     z.object({
+      window_index: z.number(),
+      tab_index:    z.number(),
+      url:          z.string(),
+      title:        z.string(),
+    }),
+  }),
 }, async ({ query }) => {
   const escaped = query.replace(/"/g, '\\"').toLowerCase();
   const raw = await as(`
@@ -164,10 +194,11 @@ server.registerTool('focus_tab', {
   `);
   if (raw === 'NOT_FOUND') throw new Error(`No tab found matching "${query}"`);
   const [wi, ti, url, ...rest] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({
+  const result = {
     success: true,
     tab: { window_index: parseInt(wi) - 1, tab_index: parseInt(ti) - 1, url, title: rest.join(':::') },
-  }) }] };
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,6 +208,13 @@ server.registerTool('close_tab', {
   inputSchema: {
     query: z.string().default('').describe('Substring to match URL or title (empty = close active tab)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    closed:  z.object({
+      url:   z.string(),
+      title: z.string(),
+    }),
+  }),
 }, async ({ query }) => {
   let raw;
   if (!query) {
@@ -212,7 +250,8 @@ server.registerTool('close_tab', {
     if (raw === 'NOT_FOUND') throw new Error(`No tab found matching "${query}"`);
   }
   const [url, ...rest] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, closed: { url, title: rest.join(':::') } }) }] };
+  const result = { success: true, closed: { url, title: rest.join(':::') } };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,6 +259,9 @@ server.registerTool('close_tab', {
 server.registerTool('reload', {
   description: 'Reload the active tab in the front Safari window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await as(`
     tell application "Safari"
@@ -227,7 +269,8 @@ server.registerTool('reload', {
       do JavaScript "location.reload()" in current tab of front window
     end tell
   `);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,6 +278,9 @@ server.registerTool('reload', {
 server.registerTool('go_back', {
   description: 'Navigate back in history in the active tab of the front Safari window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await as(`
     tell application "Safari"
@@ -242,7 +288,8 @@ server.registerTool('go_back', {
       do JavaScript "history.back()" in current tab of front window
     end tell
   `);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -250,6 +297,9 @@ server.registerTool('go_back', {
 server.registerTool('go_forward', {
   description: 'Navigate forward in history in the active tab of the front Safari window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await as(`
     tell application "Safari"
@@ -257,7 +307,8 @@ server.registerTool('go_forward', {
       do JavaScript "history.forward()" in current tab of front window
     end tell
   `);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -267,6 +318,9 @@ server.registerTool('new_window', {
   inputSchema: {
     url: z.string().default('').describe('URL to open in the new window (empty = start page)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async ({ url }) => {
   const escaped = url.replace(/"/g, '\\"');
   if (url) {
@@ -275,7 +329,8 @@ server.registerTool('new_window', {
     await as(`tell application "Safari" to make new document`);
   }
   await as(`tell application "Safari" to activate`);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Layer 2: JavaScript execution ────────────────────────────────────────────
@@ -286,11 +341,17 @@ Enables the Develop menu and the JavaScript from Apple Events setting via System
 Only needs to be called once; the setting persists across Safari restarts.
 Requires Accessibility access for the plugin (System Preferences > Privacy & Security > Accessibility).`,
   inputSchema: {},
+  outputSchema: z.object({
+    already_enabled: z.boolean().optional(),
+    success:         z.boolean().optional(),
+    hint:            z.string().optional(),
+  }),
 }, async () => {
   // Check if already enabled by trying a simple do JavaScript
   try {
     await as(`tell application "Safari" to do JavaScript "1" in current tab of front window`, 3000);
-    return { content: [{ type: 'text', text: JSON.stringify({ already_enabled: true }) }] };
+    const result = { already_enabled: true };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch (e) {
     if (!e.message.includes('Apple Events') && !e.message.includes('turned off') && !e.message.includes('not allowed')) {
       // Different error (e.g. no windows) — still try to enable
@@ -364,12 +425,14 @@ Requires Accessibility access for the plugin (System Preferences > Privacy & Sec
         end tell
       end tell
     `, 12000);
-    return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+    const result = { success: true };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch (err) {
-    return { content: [{ type: 'text', text: JSON.stringify({
+    const result = {
       success: false,
       hint: 'Enable manually: Safari > Develop > Developer Settings > Allow JavaScript from Apple Events. If no Develop menu: Safari Settings > Advanced > Show features for web developers.',
-    }) }] };
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });
 
@@ -383,6 +446,9 @@ Example: expression="document.title" → "My Page Title"`,
   inputSchema: {
     expression: z.string().describe('JavaScript expression to evaluate in the active tab'),
   },
+  outputSchema: z.object({
+    result: z.string(),
+  }),
 }, async ({ expression }) => {
   // Escape for AppleScript string: backslash and double-quote
   const escaped = expression.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -392,7 +458,8 @@ Example: expression="document.title" → "My Page Title"`,
       return do JavaScript "${escaped}" in current tab of front window
     end tell
   `, 15000);
-  return { content: [{ type: 'text', text: JSON.stringify({ result }) }] };
+  const out = { result };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -401,13 +468,20 @@ server.registerTool('get_page_source', {
   description: `Get the full HTML source of the active Safari tab.
 Works on the user's real Safari session. Requires "Allow JavaScript from Apple Events" — call enable_javascript once.`,
   inputSchema: {},
+  outputSchema: z.object({
+    url:    z.string(),
+    title:  z.string(),
+    length: z.number(),
+    html:   z.string(),
+  }),
 }, async () => {
   const [url, title, html] = await Promise.all([
     as(`tell application "Safari" to return URL of current tab of front window`),
     as(`tell application "Safari" to return name of current tab of front window`),
     as(`tell application "Safari" to do JavaScript "document.documentElement.outerHTML" in current tab of front window`, 30000),
   ]);
-  return { content: [{ type: 'text', text: JSON.stringify({ url, title, length: html.length, html }) }] };
+  const result = { url, title, length: html.length, html };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -416,13 +490,20 @@ server.registerTool('get_page_text', {
   description: `Get the readable text content of the active Safari tab (strips HTML tags).
 Works on the user's real Safari session. Requires "Allow JavaScript from Apple Events" — call enable_javascript once.`,
   inputSchema: {},
+  outputSchema: z.object({
+    url:    z.string(),
+    title:  z.string(),
+    length: z.number(),
+    text:   z.string(),
+  }),
 }, async () => {
   const [url, title, text] = await Promise.all([
     as(`tell application "Safari" to return URL of current tab of front window`),
     as(`tell application "Safari" to return name of current tab of front window`),
     as(`tell application "Safari" to do JavaScript "document.body ? document.body.innerText : ''" in current tab of front window`, 15000),
   ]);
-  return { content: [{ type: 'text', text: JSON.stringify({ url, title, length: text.length, text }) }] };
+  const result = { url, title, length: text.length, text };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

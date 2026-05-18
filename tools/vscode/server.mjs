@@ -93,12 +93,18 @@ function sendToActive(id, payload) {
 server.registerTool('get_status', {
   description: 'Check whether any VS Code windows are connected and which is active. Returns {connected, session_count, active_session}.',
   inputSchema: {},
+  outputSchema: z.object({
+    connected:      z.boolean(),
+    session_count:  z.number(),
+    active_session: z.string().nullable(),
+  }),
 }, async () => {
-  return { content: [{ type: 'text', text: JSON.stringify({
+  const result = {
     connected: sessions.size > 0,
     session_count: sessions.size,
     active_session: activeSessionId,
-  }) }] };
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,12 +121,17 @@ server.registerTool('execute_command', {
     command: z.string().describe('VS Code command ID (e.g. "workbench.action.toggleSidebarVisibility")'),
     arguments: z.array(z.unknown()).default([]).describe('Optional command arguments'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    command: z.string(),
+  }),
 }, async ({ command, arguments: args }) => {
   sendToActive('ExecuteCommandMessage', {
     command,
     arguments: args.length > 0 ? JSON.stringify(args) : null,
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, command }) }] };
+  const result = { success: true, command };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,6 +144,9 @@ server.registerTool('create_terminal', {
     shell_path:       z.string().default('').describe('Shell executable path (default: user default shell)'),
     preserve_focus:   z.boolean().default(false).describe('If true, keep focus on the editor instead of the terminal'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async ({ name, working_directory, shell_path, preserve_focus }) => {
   sendToActive('CreateTerminalMessage', {
     name: name || undefined,
@@ -140,7 +154,8 @@ server.registerTool('create_terminal', {
     shellPath: shell_path || undefined,
     preserveFocus: preserve_focus,
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,9 +165,14 @@ server.registerTool('run_in_terminal', {
   inputSchema: {
     command: z.string().describe('Shell command to run in the active terminal'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    command: z.string(),
+  }),
 }, async ({ command }) => {
   sendToActive('ExecuteTerminalCommandMessage', { command });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, command }) }] };
+  const result = { success: true, command };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,9 +183,14 @@ server.registerTool('open_folder', {
     path:       z.string().describe('Absolute path to the folder'),
     new_window: z.boolean().default(false).describe('Open in a new VS Code window'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    path:    z.string(),
+  }),
 }, async ({ path, new_window }) => {
   sendToActive('OpenFolderMessage', { path, newWindow: new_window });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, path }) }] };
+  const result = { success: true, path };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,9 +200,14 @@ server.registerTool('change_language', {
   inputSchema: {
     language_id: z.string().describe('VS Code language ID (e.g. "typescript", "python", "markdown")'),
   },
+  outputSchema: z.object({
+    success:     z.boolean(),
+    language_id: z.string(),
+  }),
 }, async ({ language_id }) => {
   sendToActive('ChangeLanguageMessage', { languageId: language_id });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, language_id }) }] };
+  const result = { success: true, language_id };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -187,9 +217,14 @@ server.registerTool('insert_snippet', {
   inputSchema: {
     name: z.string().describe('Snippet name as defined in VS Code'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    name:    z.string(),
+  }),
 }, async ({ name }) => {
   sendToActive('InsertSnippetMessage', { name });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, name }) }] };
+  const result = { success: true, name };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,6 +238,14 @@ server.registerTool('search_commands', {
     query:     z.string().default('').describe('Search term matched against command ID and title (case-insensitive)'),
     extension: z.string().default('').describe('Filter to a specific extension by folder name prefix (e.g. "anthropic", "claude", "ms-vscode")'),
   },
+  outputSchema: z.object({
+    count:    z.number(),
+    commands: z.array(z.object({
+      command:   z.string(),
+      title:     z.string(),
+      extension: z.string(),
+    })),
+  }),
 }, async ({ query, extension }) => {
   const extensionDirs = [
     join(homedir(), '.vscode', 'extensions'),
@@ -236,7 +279,8 @@ server.registerTool('search_commands', {
   }
 
   results.sort((a, b) => a.command.localeCompare(b.command));
-  return { content: [{ type: 'text', text: JSON.stringify({ count: results.length, commands: results }) }] };
+  const result = { count: results.length, commands: results };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

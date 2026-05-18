@@ -47,6 +47,11 @@ server.registerTool('start_audio_recording', {
   inputSchema: {
     output_path: z.string().default('').describe('Where to save the recording (default: temp .m4a file in /tmp)'),
   },
+  outputSchema: z.object({
+    status:  z.string(),
+    path:    z.string().optional(),
+    message: z.string().optional(),
+  }),
 }, async ({ output_path }) => {
   if (_audioState) {
     // Verify QuickTime still has a recording doc — state may be stale
@@ -67,11 +72,12 @@ server.registerTool('start_audio_recording', {
   }
 
   if (_audioState) {
-    return { content: [{ type: 'text', text: JSON.stringify({
+    const result = {
       status: 'already_recording',
       path: _audioState.outPath,
       message: 'Already recording. Call stop_audio_recording first.',
-    }) }] };
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
   }
 
 
@@ -87,7 +93,8 @@ server.registerTool('start_audio_recording', {
   `);
 
   _audioState = { outPath, startTime: Date.now() };
-  return { content: [{ type: 'text', text: JSON.stringify({ status: 'recording', path: outPath }) }] };
+  const result = { status: 'recording', path: outPath };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,12 +102,19 @@ server.registerTool('start_audio_recording', {
 server.registerTool('stop_audio_recording', {
   description: 'Stop the current audio recording and export it to M4A. Returns {path, duration_seconds}.',
   inputSchema: {},
+  outputSchema: z.object({
+    status:           z.string().optional(),
+    message:          z.string().optional(),
+    path:             z.string().optional(),
+    duration_seconds: z.number().optional(),
+  }),
 }, async () => {
   if (!_audioState) {
-    return { content: [{ type: 'text', text: JSON.stringify({
+    const result = {
       status: 'not_recording',
       message: 'No active recording. Call start_audio_recording first.',
-    }) }] };
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
   }
 
   const { outPath, startTime } = _audioState;
@@ -125,7 +139,8 @@ server.registerTool('stop_audio_recording', {
   `, 120000);
 
   _audioState = null;
-  return { content: [{ type: 'text', text: JSON.stringify({ path: outPath, duration_seconds: Math.round(duration * 100) / 100 }) }] };
+  const result = { path: outPath, duration_seconds: Math.round(duration * 100) / 100 };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,14 +148,23 @@ server.registerTool('stop_audio_recording', {
 server.registerTool('audio_recording_status', {
   description: 'Check whether an audio recording is currently in progress. Returns {recording, path?, elapsed_seconds?}.',
   inputSchema: {},
+  outputSchema: z.object({
+    recording:       z.boolean(),
+    path:            z.string().optional(),
+    elapsed_seconds: z.number().optional(),
+  }),
 }, async () => {
-  if (!_audioState) return { content: [{ type: 'text', text: JSON.stringify({ recording: false }) }] };
+  if (!_audioState) {
+    const result = { recording: false };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
+  }
   const elapsed = (Date.now() - _audioState.startTime) / 1000;
-  return { content: [{ type: 'text', text: JSON.stringify({
+  const result = {
     recording: true,
     path: _audioState.outPath,
     elapsed_seconds: Math.round(elapsed * 100) / 100,
-  }) }] };
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── screen recording ──────────────────────────────────────────────────────────
@@ -148,6 +172,10 @@ server.registerTool('audio_recording_status', {
 server.registerTool('open_screen_recording', {
   description: 'Open the QuickTime screen recording toolbar. The user clicks Record to start and Stop to finish — QuickTime handles saving. Use this to quickly launch a screen recording from a Stream Deck button.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+  }),
 }, async () => {
   await osascript(`
     tell application "QuickTime Player"
@@ -155,7 +183,8 @@ server.registerTool('open_screen_recording', {
       new screen recording
     end tell
   `);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: 'Screen recording toolbar opened — click Record to begin.' }) }] };
+  const result = { success: true, message: 'Screen recording toolbar opened — click Record to begin.' };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── utilities ─────────────────────────────────────────────────────────────────
@@ -165,6 +194,10 @@ server.registerTool('open_file', {
   inputSchema: {
     path: z.string().describe('Absolute path to the media file to open'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    name:    z.string(),
+  }),
 }, async ({ path }) => {
   const raw = await osascript(`
 tell application "QuickTime Player"
@@ -177,7 +210,8 @@ tell application "QuickTime Player"
     return ""
   end try
 end tell`);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, name: raw }) }] };
+  const result = { success: true, name: raw };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -185,6 +219,13 @@ end tell`);
 server.registerTool('get_open_documents', {
   description: 'List all documents currently open in QuickTime Player. Returns [{name, duration_seconds}].',
   inputSchema: {},
+  outputSchema: z.object({
+    count:     z.number(),
+    documents: z.array(z.object({
+      name:             z.string(),
+      duration_seconds: z.number(),
+    })),
+  }),
 }, async () => {
   const raw = await osascript(`
 tell application "QuickTime Player"
@@ -204,7 +245,8 @@ end tell`);
     const [name, dur] = entry.split(':::');
     return { name: name ?? '', duration_seconds: Math.round(parseFloat(dur) * 100) / 100 || 0 };
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ count: docs.length, documents: docs }) }] };
+  const result = { count: docs.length, documents: docs };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── start ─────────────────────────────────────────────────────────────────────

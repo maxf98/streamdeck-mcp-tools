@@ -81,6 +81,14 @@ function parseReminders(raw) {
 server.registerTool('list_lists', {
   description: 'List all reminder lists in Apple Reminders. Returns [{name, id, reminder_count}].',
   inputSchema: {},
+  outputSchema: z.object({
+    count: z.number(),
+    lists: z.array(z.object({
+      name:           z.string(),
+      id:             z.string(),
+      reminder_count: z.number(),
+    })),
+  }),
 }, async () => {
   const raw = await as(`
 tell application "Reminders"
@@ -94,7 +102,8 @@ end tell`);
     const [name, id, count] = entry.split(':::');
     return { name, id, reminder_count: parseInt(count) || 0 };
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ count: lists.length, lists }) }] };
+  const result = { count: lists.length, lists };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,6 +115,18 @@ server.registerTool('list_reminders', {
     include_completed: z.boolean().default(false).describe('Include completed reminders'),
     limit:             z.number().default(50).describe('Maximum number to return'),
   },
+  outputSchema: z.object({
+    count:     z.number(),
+    reminders: z.array(z.object({
+      name:      z.string(),
+      id:        z.string(),
+      list_name: z.string(),
+      due_date:  z.string(),
+      completed: z.boolean(),
+      priority:  z.number(),
+      notes:     z.string(),
+    })),
+  }),
 }, async ({ list_name, include_completed, limit }) => {
   const completedClause = include_completed ? '' : 'whose completed is false';
   let script;
@@ -165,7 +186,8 @@ end tell`;
   }
   const raw = await as(script, 60000);
   const reminders = parseReminders(raw);
-  return { content: [{ type: 'text', text: JSON.stringify({ count: reminders.length, reminders }) }] };
+  const result = { count: reminders.length, reminders };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,6 +201,12 @@ server.registerTool('create_reminder', {
     notes:     z.string().default('').describe('Additional notes (optional)'),
     priority:  z.number().min(0).max(9).default(0).describe('Priority: 0=none, 1=high, 5=medium, 9=low'),
   },
+  outputSchema: z.object({
+    success:   z.boolean(),
+    id:        z.string(),
+    name:      z.string(),
+    list_name: z.string(),
+  }),
 }, async ({ name, list_name, due_date, notes, priority }) => {
   let dueDateBlock = '';
   if (due_date) {
@@ -200,7 +228,8 @@ tell application "Reminders"
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
   const [rName, id] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, name: rName, list_name }) }] };
+  const result = { success: true, id, name: rName, list_name };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,6 +240,10 @@ server.registerTool('complete_reminder', {
     name:      z.string().describe('Reminder title (exact or partial match)'),
     list_name: z.string().default('').describe('List name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success:   z.boolean(),
+    completed: z.string(),
+  }),
 }, async ({ name, list_name }) => {
   const findExpr = list_name
     ? `first reminder of (first list whose name is "${esc(list_name)}") whose name contains "${esc(name)}"`
@@ -226,7 +259,8 @@ tell application "Reminders"
   end try
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, completed: raw }) }] };
+  const result = { success: true, completed: raw };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -237,6 +271,10 @@ server.registerTool('uncomplete_reminder', {
     name:      z.string().describe('Reminder title (exact or partial match)'),
     list_name: z.string().default('').describe('List name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success:     z.boolean(),
+    uncompleted: z.string(),
+  }),
 }, async ({ name, list_name }) => {
   const findExpr = list_name
     ? `first reminder of (first list whose name is "${esc(list_name)}") whose (name contains "${esc(name)}" and completed is true)`
@@ -252,7 +290,8 @@ tell application "Reminders"
   end try
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, uncompleted: raw }) }] };
+  const result = { success: true, uncompleted: raw };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,6 +302,10 @@ server.registerTool('delete_reminder', {
     name:      z.string().describe('Reminder title (exact or partial match)'),
     list_name: z.string().default('').describe('List name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    deleted: z.string(),
+  }),
 }, async ({ name, list_name }) => {
   const findExpr = list_name
     ? `first reminder of (first list whose name is "${esc(list_name)}") whose name contains "${esc(name)}"`
@@ -279,7 +322,8 @@ tell application "Reminders"
   end try
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, deleted: raw }) }] };
+  const result = { success: true, deleted: raw };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -290,6 +334,18 @@ server.registerTool('search_reminders', {
     query: z.string().describe('Substring to match in reminder name or notes'),
     limit: z.number().default(20).describe('Maximum number of results'),
   },
+  outputSchema: z.object({
+    count:     z.number(),
+    reminders: z.array(z.object({
+      name:      z.string(),
+      id:        z.string(),
+      list_name: z.string(),
+      due_date:  z.string(),
+      completed: z.boolean(),
+      priority:  z.number(),
+      notes:     z.string(),
+    })),
+  }),
 }, async ({ query, limit }) => {
   const raw = await as(`
 tell application "Reminders"
@@ -322,7 +378,8 @@ tell application "Reminders"
   return output
 end tell`, 60000);
   const reminders = parseReminders(raw);
-  return { content: [{ type: 'text', text: JSON.stringify({ count: reminders.length, reminders }) }] };
+  const result = { count: reminders.length, reminders };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── start ─────────────────────────────────────────────────────────────────────

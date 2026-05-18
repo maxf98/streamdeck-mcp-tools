@@ -94,6 +94,10 @@ server.registerTool('open_url', {
     url:        z.string().describe('URL to open (e.g. "https://example.com")'),
     new_window: z.boolean().default(false).describe('Open in a new window instead of a new tab'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    url:     z.string(),
+  }),
 }, async ({ url, new_window }) => {
   if (new_window) {
     await jxa((u) => { const c = Application('Google Chrome'); c.open(u); c.activate(); }, url);
@@ -108,7 +112,8 @@ server.registerTool('open_url', {
       c.activate();
     }, url);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url }) }] };
+  const result = { success: true, url };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,6 +121,10 @@ server.registerTool('open_url', {
 server.registerTool('get_active_tab', {
   description: 'Get the URL and title of the currently active tab in the front Chrome window.',
   inputSchema: {},
+  outputSchema: z.object({
+    url:   z.string(),
+    title: z.string(),
+  }),
 }, async () => {
   const result = await jxa(() => {
     const c = Application('Google Chrome');
@@ -124,7 +133,7 @@ server.registerTool('get_active_tab', {
     return { url: tab.url(), title: tab.title() };
   });
   if (!result) throw new Error('No Chrome windows open.');
-  return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -132,6 +141,16 @@ server.registerTool('get_active_tab', {
 server.registerTool('list_tabs', {
   description: 'List all open tabs across all Chrome windows. Returns [{window_index, tab_index, url, title, active}].',
   inputSchema: {},
+  outputSchema: z.object({
+    count: z.number(),
+    tabs:  z.array(z.object({
+      window_index: z.number(),
+      tab_index:    z.number(),
+      url:          z.string(),
+      title:        z.string(),
+      active:       z.boolean(),
+    })),
+  }),
 }, async () => {
   const tabs = await jxa(() => {
     const c = Application('Google Chrome');
@@ -144,7 +163,8 @@ server.registerTool('list_tabs', {
     });
     return results;
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ count: tabs.length, tabs }) }] };
+  const result = { count: tabs.length, tabs };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +174,15 @@ server.registerTool('focus_tab', {
   inputSchema: {
     query: z.string().describe('Substring to match against tab URL or title'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    tab:     z.object({
+      window_index: z.number(),
+      tab_index:    z.number(),
+      url:          z.string(),
+      title:        z.string(),
+    }),
+  }),
 }, async ({ query }) => {
   const result = await jxa((q) => {
     const c = Application('Google Chrome');
@@ -173,7 +202,8 @@ server.registerTool('focus_tab', {
     return found;
   }, query);
   if (!result) throw new Error(`No tab found matching "${query}"`);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, tab: result }) }] };
+  const out = { success: true, tab: result };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,6 +213,13 @@ server.registerTool('close_tab', {
   inputSchema: {
     query: z.string().default('').describe('Substring to match URL or title (empty = close active tab)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    closed:  z.object({
+      url:   z.string(),
+      title: z.string(),
+    }),
+  }),
 }, async ({ query }) => {
   const result = await jxa((q) => {
     const c = Application('Google Chrome');
@@ -208,7 +245,8 @@ server.registerTool('close_tab', {
     return closed;
   }, query);
   if (!result) throw new Error(query ? `No tab found matching "${query}"` : 'No Chrome windows open.');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, closed: result }) }] };
+  const out = { success: true, closed: result };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,13 +254,17 @@ server.registerTool('close_tab', {
 server.registerTool('reload', {
   description: 'Reload the active tab in the front Chrome window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await jxa(() => {
     const c = Application('Google Chrome');
     if (c.windows.length === 0) throw new Error('No Chrome windows open.');
     c.windows[0].activeTab.reload();
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,13 +272,17 @@ server.registerTool('reload', {
 server.registerTool('go_back', {
   description: 'Navigate back in history in the active tab of the front Chrome window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await jxa(() => {
     const c = Application('Google Chrome');
     if (c.windows.length === 0) throw new Error('No Chrome windows open.');
     c.windows[0].activeTab.goBack();
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -244,13 +290,17 @@ server.registerTool('go_back', {
 server.registerTool('go_forward', {
   description: 'Navigate forward in history in the active tab of the front Chrome window.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async () => {
   await jxa(() => {
     const c = Application('Google Chrome');
     if (c.windows.length === 0) throw new Error('No Chrome windows open.');
     c.windows[0].activeTab.goForward();
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,13 +310,17 @@ server.registerTool('new_window', {
   inputSchema: {
     url: z.string().default('').describe('URL to open in the new window (empty = new tab page)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+  }),
 }, async ({ url }) => {
   await jxa((u) => {
     const c = Application('Google Chrome');
     if (u) c.open(u); else c.make({ new: 'window' });
     c.activate();
   }, url);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+  const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Layer 2: CDP tools ────────────────────────────────────────────────────────
@@ -277,13 +331,20 @@ Opens a separate Chrome instance (profile at /tmp/chrome-cdp) alongside the user
 Only needs to be called once per session; if CDP is already available it returns immediately.
 After this, use navigate to load a page, then execute_javascript / get_page_source / get_page_text / take_screenshot.`,
   inputSchema: {},
+  outputSchema: z.object({
+    already_enabled: z.boolean().optional(),
+    success:         z.boolean().optional(),
+    browser:         z.string().optional(),
+    port:            z.number().optional(),
+  }),
 }, async () => {
   // Already up?
   try {
     const res = await fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(1500) });
     if (res.ok) {
       const info = await res.json();
-      return { content: [{ type: 'text', text: JSON.stringify({ already_enabled: true, browser: info.Browser }) }] };
+      const result = { already_enabled: true, browser: info.Browser };
+      return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
     }
   } catch { /* not up yet */ }
 
@@ -303,7 +364,8 @@ After this, use navigate to load a page, then execute_javascript / get_page_sour
       const res = await fetch(`${CDP_BASE}/json/version`, { signal: AbortSignal.timeout(1000) });
       if (res.ok) {
         const info = await res.json();
-        return { content: [{ type: 'text', text: JSON.stringify({ success: true, browser: info.Browser, port: CDP_PORT }) }] };
+        const result = { success: true, browser: info.Browser, port: CDP_PORT };
+        return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
       }
     } catch { /* not ready yet */ }
   }
@@ -315,6 +377,12 @@ After this, use navigate to load a page, then execute_javascript / get_page_sour
 server.registerTool('get_debug_status', {
   description: 'Check if CDP is available. Returns {available, browser, tab_count} or {available: false}. Call enable_cdp to start it.',
   inputSchema: {},
+  outputSchema: z.object({
+    available:  z.boolean(),
+    browser:    z.string().optional(),
+    tab_count:  z.number().optional(),
+    hint:       z.string().optional(),
+  }),
 }, async () => {
   try {
     const [versionRes, tabsRes] = await Promise.all([
@@ -323,13 +391,15 @@ server.registerTool('get_debug_status', {
     ]);
     const info = await versionRes.json();
     const tabs = await tabsRes.json();
-    return { content: [{ type: 'text', text: JSON.stringify({
+    const result = {
       available: true,
       browser: info.Browser,
       tab_count: tabs.filter(t => t.type === 'page').length,
-    }) }] };
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({ available: false, hint: 'Call enable_cdp to start a CDP-enabled Chrome window.' }) }] };
+    const result = { available: false, hint: 'Call enable_cdp to start a CDP-enabled Chrome window.' };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });
 
@@ -341,13 +411,19 @@ server.registerTool('navigate', {
     url: z.string().describe('URL to navigate to'),
     wait_ms: z.number().default(2000).describe('Milliseconds to wait for page load after navigation'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    url:     z.string(),
+    title:   z.string(),
+  }),
 }, async ({ url, wait_ms }) => {
   const page = await cdpActivePage();
   await cdpCall(page.webSocketDebuggerUrl, 'Page.navigate', { url });
   if (wait_ms > 0) await new Promise(r => setTimeout(r, wait_ms));
   // Re-fetch to get updated title
   const updated = (await cdpTargets()).find(t => t.type === 'page');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url: updated?.url ?? url, title: updated?.title ?? '' }) }] };
+  const result = { success: true, url: updated?.url ?? url, title: updated?.title ?? '' };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -361,6 +437,10 @@ Example: expression="document.querySelectorAll('a').length" → 42`,
     expression:    z.string().describe('JavaScript expression to evaluate'),
     await_promise: z.boolean().default(false).describe('Await the result if it is a Promise'),
   },
+  outputSchema: z.object({
+    type:  z.string().nullable(),
+    value: z.unknown().nullable(),
+  }),
 }, async ({ expression, await_promise }) => {
   const page = await cdpActivePage();
   const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
@@ -371,7 +451,8 @@ Example: expression="document.querySelectorAll('a').length" → 42`,
   if (result?.exceptionDetails) {
     throw new Error(`JS error: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ type: result?.result?.type, value: result?.result?.value }) }] };
+  const out = { type: result?.result?.type ?? null, value: result?.result?.value ?? null };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -379,6 +460,12 @@ Example: expression="document.querySelectorAll('a').length" → 42`,
 server.registerTool('get_page_source', {
   description: 'Get the full HTML source of the active CDP Chrome tab. Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
+  outputSchema: z.object({
+    url:    z.string(),
+    title:  z.string(),
+    length: z.number(),
+    html:   z.string(),
+  }),
 }, async () => {
   const page = await cdpActivePage();
   const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
@@ -386,7 +473,8 @@ server.registerTool('get_page_source', {
     returnByValue: true,
   });
   const html = result?.result?.value ?? '';
-  return { content: [{ type: 'text', text: JSON.stringify({ url: page.url, title: page.title, length: html.length, html }) }] };
+  const out = { url: page.url, title: page.title, length: html.length, html };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -394,6 +482,12 @@ server.registerTool('get_page_source', {
 server.registerTool('get_page_text', {
   description: 'Get the readable text content of the active CDP Chrome tab (strips HTML). Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
+  outputSchema: z.object({
+    url:    z.string(),
+    title:  z.string(),
+    length: z.number(),
+    text:   z.string(),
+  }),
 }, async () => {
   const page = await cdpActivePage();
   const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
@@ -401,7 +495,8 @@ server.registerTool('get_page_text', {
     returnByValue: true,
   });
   const text = result?.result?.value ?? '';
-  return { content: [{ type: 'text', text: JSON.stringify({ url: page.url, title: page.title, length: text.length, text }) }] };
+  const out = { url: page.url, title: page.title, length: text.length, text };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -411,6 +506,14 @@ server.registerTool('take_screenshot', {
   inputSchema: {
     full_page: z.boolean().default(false).describe('Capture the full scrollable page, not just the viewport'),
   },
+  outputSchema: z.object({
+    url:        z.string(),
+    title:      z.string(),
+    format:     z.string(),
+    full_page:  z.boolean(),
+    size_bytes: z.number(),
+    data:       z.string(),
+  }),
 }, async ({ full_page }) => {
   const page = await cdpActivePage();
   const params = { format: 'png', captureBeyondViewport: full_page };
@@ -421,12 +524,13 @@ server.registerTool('take_screenshot', {
   }
   const result = await cdpCall(page.webSocketDebuggerUrl, 'Page.captureScreenshot', params);
   const data = result?.data ?? '';
-  return { content: [{ type: 'text', text: JSON.stringify({
+  const out = {
     url: page.url, title: page.title,
     format: 'png', full_page,
     size_bytes: Math.round(data.length * 0.75),
     data,
-  }) }] };
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(out) }], structuredContent: out };
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

@@ -33,6 +33,9 @@ server.registerTool('call_llm', {
     temperature: z.number().default(0).describe('Sampling temperature (default: 0)'),
     max_tokens: z.number().int().default(4096).describe('Max tokens in the response'),
   },
+  outputSchema: z.object({
+    result: z.string(),
+  }),
 }, async ({ prompt, schema, system_prompt, model, temperature, max_tokens }) => {
   const key = apiKey();
   const schemaCopy = { ...schema };
@@ -72,7 +75,10 @@ server.registerTool('call_llm', {
   const content = choice?.message?.content;
   if (!content) throw new Error('Empty response from OpenAI');
 
-  return { content: [{ type: 'text', text: content }] };
+  return {
+    content: [{ type: 'text', text: content }],
+    structuredContent: { result: content },
+  };
 });
 
 server.registerTool('analyze_image', {
@@ -90,6 +96,9 @@ server.registerTool('analyze_image', {
     model: z.string().default('gpt-4o-mini').describe('OpenAI vision model (default: gpt-4o-mini)'),
     max_tokens: z.number().int().default(1024).describe('Max tokens in the response'),
   },
+  outputSchema: z.object({
+    result: z.string(),
+  }),
 }, async ({ prompt, image_path, image_base64, image_mime, schema, system_prompt, model, max_tokens }) => {
   const key = apiKey();
 
@@ -139,7 +148,10 @@ server.registerTool('analyze_image', {
   const content = choice?.message?.content;
   if (!content) throw new Error('Empty response from OpenAI');
 
-  return { content: [{ type: 'text', text: content }] };
+  return {
+    content: [{ type: 'text', text: content }],
+    structuredContent: { result: content },
+  };
 });
 
 server.registerTool('transcribe_file', {
@@ -148,6 +160,10 @@ server.registerTool('transcribe_file', {
     path: z.string().describe('Absolute path to the audio file'),
     language: z.string().default('').describe("ISO language code ('en', 'de', 'fr'…). Auto-detected if empty."),
   },
+  outputSchema: z.object({
+    transcript: z.string(),
+    path:       z.string(),
+  }),
 }, async ({ path: filePath, language }) => {
   if (!filePath || !existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
 
@@ -174,7 +190,11 @@ server.registerTool('transcribe_file', {
   }
 
   const data = await resp.json();
-  return { content: [{ type: 'text', text: JSON.stringify({ transcript: data.text ?? '', path: filePath }) }] };
+  const result = { transcript: data.text ?? '', path: filePath };
+  return {
+    content: [{ type: 'text', text: JSON.stringify(result) }],
+    structuredContent: result,
+  };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────

@@ -45,6 +45,15 @@ server.registerTool('list_notes', {
     folder: z.string().default('').describe('Folder name to filter by (empty = all folders)'),
     limit:  z.number().default(50).describe('Maximum number of notes to return'),
   },
+  outputSchema: z.object({
+    count: z.number(),
+    notes: z.array(z.object({
+      id:       z.string(),
+      name:     z.string(),
+      folder:   z.string(),
+      modified: z.string(),
+    })),
+  }),
 }, async ({ folder, limit }) => {
   let script;
   if (folder) {
@@ -81,7 +90,8 @@ end tell`;
   }
   const raw = await as(script, 60000);
   const notes = parseNotes(raw);
-  return { content: [{ type: 'text', text: JSON.stringify({ count: notes.length, notes }) }] };
+  const result = { count: notes.length, notes };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,6 +102,14 @@ server.registerTool('get_note', {
     name:   z.string().describe('Note title (exact or partial match)'),
     folder: z.string().default('').describe('Folder name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    id:        z.string(),
+    name:      z.string(),
+    folder:    z.string(),
+    modified:  z.string(),
+    body:      z.string(),
+    plaintext: z.string(),
+  }),
 }, async ({ name, folder }) => {
   let findExpr;
   if (folder) {
@@ -125,7 +143,8 @@ end tell`, 30000);
   const idx5 = rest4.indexOf(':::');
   const body = rest4.slice(0, idx5);
   const plaintext = rest4.slice(idx5 + 3);
-  return { content: [{ type: 'text', text: JSON.stringify({ id, name: noteName, folder: folderName, modified, body, plaintext }) }] };
+  const result = { id, name: noteName, folder: folderName, modified, body, plaintext };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,6 +156,12 @@ server.registerTool('create_note', {
     body:   z.string().default('').describe('Note body (plain text or HTML)'),
     folder: z.string().default('').describe('Folder to create the note in (empty = default Notes folder)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    id:      z.string(),
+    name:    z.string(),
+    folder:  z.string(),
+  }),
 }, async ({ name, body, folder }) => {
   const target = folder ? `first folder whose name is "${esc(folder)}"` : `default account`;
   const raw = await as(`
@@ -152,7 +177,8 @@ tell application "Notes"
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
   const [id, noteName, folderName] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, name: noteName, folder: folderName }) }] };
+  const result = { success: true, id, name: noteName, folder: folderName };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,6 +190,11 @@ server.registerTool('append_to_note', {
     text:   z.string().describe('Text to append'),
     folder: z.string().default('').describe('Folder name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    id:      z.string(),
+    name:    z.string(),
+  }),
 }, async ({ name, text, folder }) => {
   let findExpr;
   if (folder) {
@@ -183,7 +214,8 @@ tell application "Notes"
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
   const [id, noteName] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, name: noteName }) }] };
+  const result = { success: true, id, name: noteName };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,6 +228,11 @@ server.registerTool('update_note', {
     new_body: z.string().default('').describe('New body content (empty = keep current)'),
     folder:   z.string().default('').describe('Folder name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    id:      z.string(),
+    name:    z.string(),
+  }),
 }, async ({ name, new_name, new_body, folder }) => {
   let findExpr;
   if (folder) {
@@ -219,7 +256,8 @@ tell application "Notes"
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
   const [id, noteName] = raw.split(':::');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, name: noteName }) }] };
+  const result = { success: true, id, name: noteName };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,6 +268,15 @@ server.registerTool('search_notes', {
     query: z.string().describe('Search string (case-insensitive substring match)'),
     limit: z.number().default(20).describe('Maximum number of results'),
   },
+  outputSchema: z.object({
+    count: z.number(),
+    notes: z.array(z.object({
+      id:       z.string(),
+      name:     z.string(),
+      folder:   z.string(),
+      modified: z.string(),
+    })),
+  }),
 }, async ({ query, limit }) => {
   const raw = await as(`
 tell application "Notes"
@@ -257,7 +304,8 @@ tell application "Notes"
   return output
 end tell`, 60000);
   const notes = parseNotes(raw);
-  return { content: [{ type: 'text', text: JSON.stringify({ count: notes.length, notes }) }] };
+  const result = { count: notes.length, notes };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -265,6 +313,13 @@ end tell`, 60000);
 server.registerTool('list_folders', {
   description: 'List all folders in Apple Notes. Returns [{name, note_count}].',
   inputSchema: {},
+  outputSchema: z.object({
+    count:   z.number(),
+    folders: z.array(z.object({
+      name:       z.string(),
+      note_count: z.number(),
+    })),
+  }),
 }, async () => {
   const raw = await as(`
 tell application "Notes"
@@ -278,7 +333,8 @@ end tell`);
     const [name, count] = entry.split(':::');
     return { name, note_count: parseInt(count) || 0 };
   });
-  return { content: [{ type: 'text', text: JSON.stringify({ count: folders.length, folders }) }] };
+  const result = { count: folders.length, folders };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -289,6 +345,10 @@ server.registerTool('delete_note', {
     name:   z.string().describe('Note title (exact or partial match)'),
     folder: z.string().default('').describe('Folder name to narrow search (optional)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    deleted: z.string(),
+  }),
 }, async ({ name, folder }) => {
   let findExpr;
   if (folder) {
@@ -308,7 +368,8 @@ tell application "Notes"
   end try
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, deleted: raw }) }] };
+  const result = { success: true, deleted: raw };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── start ─────────────────────────────────────────────────────────────────────
