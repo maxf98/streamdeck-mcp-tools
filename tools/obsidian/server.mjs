@@ -18,11 +18,6 @@ function readVaultRegistry() {
   } catch { return []; }
 }
 
-function defaultVaultPath() {
-  const vaults = readVaultRegistry();
-  return (vaults.find(v => v.open) ?? vaults[0])?.path ?? null;
-}
-
 // ── CLI helpers ──────────────────────────────────────────────────────────────
 
 /**
@@ -32,8 +27,9 @@ function defaultVaultPath() {
  * "Your Obsidian installer is out of date …").
  * Throws if the cleaned output starts with "Error:" (CLI error format).
  */
-function cli(...args) {
-  const result = spawnSync('obsidian', args, { encoding: 'utf8' });
+function cli(vault, ...args) {
+  const vaultArgs = vault ? ['--vault', vault] : [];
+  const result = spawnSync('obsidian', [...vaultArgs, ...args], { encoding: 'utf8' });
   const cleaned = (result.stdout ?? '')
     .split('\n')
     .filter(l => !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} /.test(l) && !l.startsWith('Your Obsidian installer'))
@@ -44,8 +40,8 @@ function cli(...args) {
 }
 
 /** Run CLI and parse stdout as JSON. Returns parsed value, or [] / {} on empty. */
-function cliJSON(fallback, ...args) {
-  const out = cli(...args);
+function cliJSON(vault, fallback, ...args) {
+  const out = cli(vault, ...args);
   if (!out || out === 'No backlinks found.' || out === 'No results found.') return fallback;
   return JSON.parse(out);
 }
@@ -68,14 +64,15 @@ server.registerTool('list_notes', {
   description: 'List markdown files in the vault or a sub-folder. Returns [{path, name}] sorted by path.',
   inputSchema: {
     folder: z.string().default('').describe('Sub-folder to filter by (empty = entire vault)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     results: z.array(z.object({ path: z.string(), name: z.string() })),
   },
-}, ({ folder }) => {
+}, ({ folder, vault }) => {
   const args = ['files'];
   if (folder) args.push(`folder=${folder}`);
-  const out = cli(...args);
+  const out = cli(vault, ...args);
   const results = out ? out.split('\n').filter(Boolean).map(p => ({
     path: p,
     name: p.split('/').pop().replace(/\.md$/, ''),
@@ -87,14 +84,15 @@ server.registerTool('read_note', {
   description: 'Read a note by name (wikilink-style) or exact path. Returns {path, content}.',
   inputSchema: {
     file: z.string().describe('Note name (e.g. "My Note") — resolves like a wikilink across the vault'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     path: z.string(),
     content: z.string(),
   },
-}, ({ file }) => {
-  const path = cli('file', `file=${file}`, 'info=path').trim();
-  const content = cli('read', `file=${file}`);
+}, ({ file, vault }) => {
+  const path = cli(vault, 'file', `file=${file}`, 'info=path').trim();
+  const content = cli(vault, 'read', `file=${file}`);
   return { structuredContent: { path, content } };
 });
 
@@ -104,15 +102,16 @@ server.registerTool('write_note', {
     name: z.string().describe('Note name (without .md). Use slashes for sub-folders: "folder/Note Name"'),
     content: z.string().default('').describe('Initial markdown content'),
     overwrite: z.boolean().default(false).describe('Overwrite if the note already exists'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     path: z.string(),
     created: z.boolean(),
   },
-}, ({ name, content, overwrite }) => {
+}, ({ name, content, overwrite, vault }) => {
   const args = ['create', `name=${name}`, `content=${content}`];
   if (overwrite) args.push('overwrite');
-  const out = cli(...args);
+  const out = cli(vault, ...args);
   // Output: "Created: folder/Note Name.md"
   const path = out.replace(/^Created:\s*/, '');
   return { structuredContent: { path, created: true } };
@@ -123,10 +122,11 @@ server.registerTool('append_to_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     content: z.string().describe('Text to append'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
-}, ({ file, content }) => {
-  const out = cli('append', `file=${file}`, `content=${content}`);
+}, ({ file, content, vault }) => {
+  const out = cli(vault, 'append', `file=${file}`, `content=${content}`);
   // Output: "Appended to: DS Team/folder/Note.md"
   const path = out.replace(/^Appended to:\s*/, '');
   return { structuredContent: { path } };
@@ -137,10 +137,11 @@ server.registerTool('prepend_to_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     content: z.string().describe('Text to prepend'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
-}, ({ file, content }) => {
-  const out = cli('prepend', `file=${file}`, `content=${content}`);
+}, ({ file, content, vault }) => {
+  const out = cli(vault, 'prepend', `file=${file}`, `content=${content}`);
   const path = out.replace(/^Prepended to:\s*/, '');
   return { structuredContent: { path } };
 });
@@ -149,10 +150,11 @@ server.registerTool('delete_note', {
   description: 'Move a note to the Obsidian trash. Returns {path, deleted}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string(), deleted: z.boolean() },
-}, ({ file }) => {
-  const out = cli('delete', `file=${file}`);
+}, ({ file, vault }) => {
+  const out = cli(vault, 'delete', `file=${file}`);
   const path = out.replace(/^Deleted:\s*/, '');
   return { structuredContent: { path, deleted: true } };
 });
@@ -162,11 +164,12 @@ server.registerTool('move_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     to: z.string().describe('Destination path relative to vault root (e.g. "Archive/Note.md")'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { old_path: z.string(), new_path: z.string() },
-}, ({ file, to }) => {
-  const old_path = cli('file', `file=${file}`, 'info=path');
-  cli('move', `file=${file}`, `to=${to}`);
+}, ({ file, to, vault }) => {
+  const old_path = cli(vault, 'file', `file=${file}`, 'info=path');
+  cli(vault, 'move', `file=${file}`, `to=${to}`);
   return { structuredContent: { old_path, new_path: to } };
 });
 
@@ -179,6 +182,7 @@ server.registerTool('search_notes', {
     folder: z.string().optional().describe('Limit search to this sub-folder'),
     limit: z.number().int().default(20).describe('Max number of matching files to return'),
     case_sensitive: z.boolean().default(false).describe('Case-sensitive search'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     results: z.array(z.object({
@@ -186,11 +190,11 @@ server.registerTool('search_notes', {
       matches: z.array(z.object({ line: z.number(), text: z.string() })),
     })),
   },
-}, ({ query, folder, limit, case_sensitive }) => {
+}, ({ query, folder, limit, case_sensitive, vault }) => {
   const args = ['search:context', `query=${query}`, `limit=${limit}`, 'format=json'];
   if (folder) args.push(`path=${folder}`);
   if (case_sensitive) args.push('case');
-  const raw = cliJSON([], ...args);
+  const raw = cliJSON(vault, [], ...args);
   // Normalise line numbers from strings to integers
   const results = raw.map(r => ({
     file: r.file,
@@ -205,12 +209,13 @@ server.registerTool('list_folders', {
   description: 'List all folders in the vault. Returns array of folder paths.',
   inputSchema: {
     folder: z.string().optional().describe('Filter by parent folder'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { folders: z.array(z.string()) },
-}, ({ folder }) => {
+}, ({ folder, vault }) => {
   const args = ['folders'];
   if (folder) args.push(`folder=${folder}`);
-  const out = cli(...args);
+  const out = cli(vault, ...args);
   const folders = out ? out.split('\n').filter(Boolean) : [];
   return { structuredContent: { folders } };
 });
@@ -219,12 +224,13 @@ server.registerTool('get_outline', {
   description: 'Get the heading structure of a note. Returns [{level, heading, line}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     headings: z.array(z.object({ level: z.number(), heading: z.string(), line: z.number() })),
   },
-}, ({ file }) => {
-  const raw = cliJSON([], 'outline', `file=${file}`, 'format=json');
+}, ({ file, vault }) => {
+  const raw = cliJSON(vault, [], 'outline', `file=${file}`, 'format=json');
   const headings = raw.map(h => ({ level: h.level, heading: h.heading, line: parseInt(h.line, 10) }));
   return { structuredContent: { headings } };
 });
@@ -233,12 +239,13 @@ server.registerTool('get_backlinks', {
   description: 'List notes that link to a given note. Returns [{file, count}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     backlinks: z.array(z.object({ file: z.string(), count: z.number() })),
   },
-}, ({ file }) => {
-  const raw = cliJSON([], 'backlinks', `file=${file}`, 'counts', 'format=json');
+}, ({ file, vault }) => {
+  const raw = cliJSON(vault, [], 'backlinks', `file=${file}`, 'counts', 'format=json');
   const backlinks = Array.isArray(raw)
     ? raw.map(b => ({ file: b.file, count: parseInt(b.count ?? '1', 10) }))
     : [];
@@ -251,10 +258,11 @@ server.registerTool('get_properties', {
   description: 'Read the frontmatter properties of a note. Returns the properties as a key/value object.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { properties: z.record(z.unknown()) },
-}, ({ file }) => {
-  const properties = cliJSON({}, 'properties', `file=${file}`, 'format=json');
+}, ({ file, vault }) => {
+  const properties = cliJSON(vault, {}, 'properties', `file=${file}`, 'format=json');
   return { structuredContent: { properties } };
 });
 
@@ -265,10 +273,11 @@ server.registerTool('set_property', {
     name: z.string().describe('Property name'),
     value: z.string().describe('Property value'),
     type: z.enum(['text', 'list', 'number', 'checkbox', 'date', 'datetime']).default('text'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { file: z.string(), name: z.string(), value: z.string() },
-}, ({ file, name, value, type }) => {
-  cli('property:set', `name=${name}`, `value=${value}`, `type=${type}`, `file=${file}`);
+}, ({ file, name, value, type, vault }) => {
+  cli(vault, 'property:set', `name=${name}`, `value=${value}`, `type=${type}`, `file=${file}`);
   return { structuredContent: { file, name, value } };
 });
 
@@ -276,14 +285,15 @@ server.registerTool('list_tags', {
   description: 'List all tags in the vault (or in a specific note) with occurrence counts. Returns [{tag, count}].',
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     tags: z.array(z.object({ tag: z.string(), count: z.number() })),
   },
-}, ({ file }) => {
+}, ({ file, vault }) => {
   const args = ['tags', 'format=json', 'counts'];
   if (file) args.push(`file=${file}`);
-  const raw = cliJSON([], ...args);
+  const raw = cliJSON(vault, [], ...args);
   const tags = raw.map(t => ({ tag: t.tag, count: parseInt(t.count, 10) }));
   return { structuredContent: { tags } };
 });
@@ -295,6 +305,7 @@ server.registerTool('list_tasks', {
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
     filter: z.enum(['all', 'todo', 'done']).default('all').describe('Filter by completion status'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     tasks: z.array(z.object({
@@ -304,12 +315,12 @@ server.registerTool('list_tasks', {
       line: z.number(),
     })),
   },
-}, ({ file, filter }) => {
+}, ({ file, filter, vault }) => {
   const args = ['tasks', 'format=json'];
   if (file) args.push(`file=${file}`);
   if (filter === 'todo') args.push('todo');
   if (filter === 'done') args.push('done');
-  const raw = cliJSON([], ...args);
+  const raw = cliJSON(vault, [], ...args);
   const tasks = raw.map(t => ({
     status: t.status,
     text: t.text,
@@ -324,13 +335,14 @@ server.registerTool('toggle_task', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     line: z.number().int().describe('Line number of the task (from list_tasks)'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { file: z.string(), line: z.number(), done: z.boolean() },
-}, ({ file, line }) => {
-  const before = cliJSON([], 'tasks', `file=${file}`, 'format=json');
+}, ({ file, line, vault }) => {
+  const before = cliJSON(vault, [], 'tasks', `file=${file}`, 'format=json');
   const task = before.find(t => parseInt(t.line, 10) === line);
   const wasDone = task?.status === 'x';
-  cli('task', 'toggle', `file=${file}`, `line=${line}`);
+  cli(vault, 'task', 'toggle', `file=${file}`, `line=${line}`);
   return { structuredContent: { file, line, done: !wasDone } };
 });
 
@@ -338,11 +350,13 @@ server.registerTool('toggle_task', {
 
 server.registerTool('daily_read', {
   description: "Read today's daily note. Returns {path, content}.",
-  inputSchema: {},
+  inputSchema: {
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+  },
   outputSchema: { path: z.string(), content: z.string() },
-}, () => {
-  const path = cli('daily:path');
-  const content = cli('daily:read');
+}, ({ vault }) => {
+  const path = cli(vault, 'daily:path');
+  const content = cli(vault, 'daily:read');
   return { structuredContent: { path, content } };
 });
 
@@ -350,10 +364,11 @@ server.registerTool('daily_append', {
   description: "Append text to today's daily note (creates it if it doesn't exist). Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to append'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
-}, ({ content }) => {
-  const out = cli('daily:append', `content=${content}`);
+}, ({ content, vault }) => {
+  const out = cli(vault, 'daily:append', `content=${content}`);
   const path = out.replace(/^Appended to:\s*/, '');
   return { structuredContent: { path } };
 });
@@ -362,10 +377,11 @@ server.registerTool('daily_prepend', {
   description: "Prepend text to today's daily note. Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to prepend'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
-}, ({ content }) => {
-  const out = cli('daily:prepend', `content=${content}`);
+}, ({ content, vault }) => {
+  const out = cli(vault, 'daily:prepend', `content=${content}`);
   const path = out.replace(/^Prepended to:\s*/, '');
   return { structuredContent: { path } };
 });
@@ -384,7 +400,9 @@ server.registerTool('list_vaults', {
 
 server.registerTool('get_vault_stats', {
   description: 'Return vault statistics. Returns {name, path, files, folders, size_bytes}.',
-  inputSchema: {},
+  inputSchema: {
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+  },
   outputSchema: {
     name: z.string(),
     path: z.string(),
@@ -392,8 +410,8 @@ server.registerTool('get_vault_stats', {
     folders: z.number(),
     size_bytes: z.number(),
   },
-}, () => {
-  const raw = parseTSV(cli('vault'));
+}, ({ vault }) => {
+  const raw = parseTSV(cli(vault, 'vault'));
   return { structuredContent: {
     name: raw.name ?? '',
     path: raw.path ?? '',
@@ -409,10 +427,11 @@ server.registerTool('execute_command', {
   description: 'Execute any Obsidian command by its ID (e.g. "daily-notes:goto-today"). Use list_commands to discover IDs.',
   inputSchema: {
     id: z.string().describe('Command ID'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { ok: z.boolean() },
-}, ({ id }) => {
-  cli('command', `id=${id}`);
+}, ({ id, vault }) => {
+  cli(vault, 'command', `id=${id}`);
   return { structuredContent: { ok: true } };
 });
 
@@ -420,14 +439,15 @@ server.registerTool('list_commands', {
   description: 'List available Obsidian commands. Returns [{id, name}].',
   inputSchema: {
     filter: z.string().optional().describe('Filter by ID prefix (e.g. "daily-notes")'),
+    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     commands: z.array(z.object({ id: z.string(), name: z.string() })),
   },
-}, ({ filter }) => {
+}, ({ filter, vault }) => {
   const args = ['commands'];
   if (filter) args.push(`filter=${filter}`);
-  const out = cli(...args);
+  const out = cli(vault, ...args);
   // Output is one "id\tname" per line
   const commands = out ? out.split('\n').filter(Boolean).map(line => {
     const tab = line.indexOf('\t');
