@@ -2,19 +2,10 @@
     "id": "obsidian",
     "name": "Obsidian",
     "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "command": "node",
     "args": ["server.mjs"],
     "install": "npm install",
-    "platform": ["darwin", "linux", "win32"],
-    "tags": ["notes", "obsidian", "markdown", "knowledge-base"],
-    "config_schema": {
-        "vault_path": {
-            "description": "Absolute path to your Obsidian vault folder",
-            "env": "OBSIDIAN_VAULT_PATH",
-            "type": "path",
-            "required": true,
-            "example": "/Users/you/Documents/MyVault"
-        }
-    }
+    "platform": ["darwin"],
+    "tags": ["notes", "obsidian", "markdown", "knowledge-base"]
 }
