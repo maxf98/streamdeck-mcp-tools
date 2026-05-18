@@ -1,9 +1,27 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { z } from 'zod';
 
-const server = new McpServer({ name: 'obsidian', version: '2.0.0' });
+const server = new McpServer({ name: 'obsidian', version: '2.1.0' });
+
+// ── Vault registry ───────────────────────────────────────────────────────────
+
+function readVaultRegistry() {
+  try {
+    const raw = readFileSync(join(homedir(), 'Library/Application Support/obsidian/obsidian.json'), 'utf-8');
+    const config = JSON.parse(raw);
+    return Object.values(config.vaults ?? {}).map(v => ({ path: v.path, open: !!v.open }));
+  } catch { return []; }
+}
+
+function defaultVaultPath() {
+  const vaults = readVaultRegistry();
+  return (vaults.find(v => v.open) ?? vaults[0])?.path ?? null;
+}
 
 // ── CLI helpers ──────────────────────────────────────────────────────────────
 
@@ -353,6 +371,16 @@ server.registerTool('daily_prepend', {
 });
 
 // ── Vault ────────────────────────────────────────────────────────────────────
+
+server.registerTool('list_vaults', {
+  description: 'List all Obsidian vaults registered on this machine. Returns [{path, open}] where open=true is the currently active vault.',
+  inputSchema: {},
+  outputSchema: {
+    vaults: z.array(z.object({ path: z.string(), open: z.boolean() })),
+  },
+}, () => {
+  return { structuredContent: { vaults: readVaultRegistry() } };
+});
 
 server.registerTool('get_vault_stats', {
   description: 'Return vault statistics. Returns {name, path, files, folders, size_bytes}.',
