@@ -64,7 +64,7 @@ server.registerTool('list_notes', {
   description: 'List markdown files in the vault or a sub-folder. Returns [{path, name}] sorted by path.',
   inputSchema: {
     folder: z.string().default('').describe('Sub-folder to filter by (empty = entire vault)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     results: z.array(z.object({ path: z.string(), name: z.string() })),
@@ -84,7 +84,7 @@ server.registerTool('read_note', {
   description: 'Read a note by name (wikilink-style) or exact path. Returns {path, content}.',
   inputSchema: {
     file: z.string().describe('Note name (e.g. "My Note") — resolves like a wikilink across the vault'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     path: z.string(),
@@ -102,7 +102,7 @@ server.registerTool('write_note', {
     name: z.string().describe('Note name (without .md). Use slashes for sub-folders: "folder/Note Name"'),
     content: z.string().default('').describe('Initial markdown content'),
     overwrite: z.boolean().default(false).describe('Overwrite if the note already exists'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     path: z.string(),
@@ -122,7 +122,7 @@ server.registerTool('append_to_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     content: z.string().describe('Text to append'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
 }, ({ file, content, vault }) => {
@@ -137,7 +137,7 @@ server.registerTool('prepend_to_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     content: z.string().describe('Text to prepend'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
 }, ({ file, content, vault }) => {
@@ -150,7 +150,7 @@ server.registerTool('delete_note', {
   description: 'Move a note to the Obsidian trash. Returns {path, deleted}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string(), deleted: z.boolean() },
 }, ({ file, vault }) => {
@@ -164,7 +164,7 @@ server.registerTool('move_note', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     to: z.string().describe('Destination path relative to vault root (e.g. "Archive/Note.md")'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { old_path: z.string(), new_path: z.string() },
 }, ({ file, to, vault }) => {
@@ -182,7 +182,7 @@ server.registerTool('search_notes', {
     folder: z.string().optional().describe('Limit search to this sub-folder'),
     limit: z.number().int().default(20).describe('Max number of matching files to return'),
     case_sensitive: z.boolean().default(false).describe('Case-sensitive search'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     results: z.array(z.object({
@@ -209,7 +209,7 @@ server.registerTool('list_folders', {
   description: 'List all folders in the vault. Returns array of folder paths.',
   inputSchema: {
     folder: z.string().optional().describe('Filter by parent folder'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { folders: z.array(z.string()) },
 }, ({ folder, vault }) => {
@@ -224,7 +224,7 @@ server.registerTool('get_outline', {
   description: 'Get the heading structure of a note. Returns [{level, heading, line}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     headings: z.array(z.object({ level: z.number(), heading: z.string(), line: z.number() })),
@@ -239,7 +239,7 @@ server.registerTool('get_backlinks', {
   description: 'List notes that link to a given note. Returns [{file, count}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     backlinks: z.array(z.object({ file: z.string(), count: z.number() })),
@@ -258,7 +258,7 @@ server.registerTool('get_properties', {
   description: 'Read the frontmatter properties of a note. Returns the properties as a key/value object.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { properties: z.record(z.unknown()) },
 }, ({ file, vault }) => {
@@ -273,7 +273,7 @@ server.registerTool('set_property', {
     name: z.string().describe('Property name'),
     value: z.string().describe('Property value'),
     type: z.enum(['text', 'list', 'number', 'checkbox', 'date', 'datetime']).default('text'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { file: z.string(), name: z.string(), value: z.string() },
 }, ({ file, name, value, type, vault }) => {
@@ -285,7 +285,7 @@ server.registerTool('list_tags', {
   description: 'List all tags in the vault (or in a specific note) with occurrence counts. Returns [{tag, count}].',
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     tags: z.array(z.object({ tag: z.string(), count: z.number() })),
@@ -305,7 +305,7 @@ server.registerTool('list_tasks', {
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
     filter: z.enum(['all', 'todo', 'done']).default('all').describe('Filter by completion status'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     tasks: z.array(z.object({
@@ -335,7 +335,7 @@ server.registerTool('toggle_task', {
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
     line: z.number().int().describe('Line number of the task (from list_tasks)'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { file: z.string(), line: z.number(), done: z.boolean() },
 }, ({ file, line, vault }) => {
@@ -351,7 +351,7 @@ server.registerTool('toggle_task', {
 server.registerTool('daily_read', {
   description: "Read today's daily note. Returns {path, content}.",
   inputSchema: {
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string(), content: z.string() },
 }, ({ vault }) => {
@@ -364,7 +364,7 @@ server.registerTool('daily_append', {
   description: "Append text to today's daily note (creates it if it doesn't exist). Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to append'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
 }, ({ content, vault }) => {
@@ -377,7 +377,7 @@ server.registerTool('daily_prepend', {
   description: "Prepend text to today's daily note. Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to prepend'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { path: z.string() },
 }, ({ content, vault }) => {
@@ -401,7 +401,7 @@ server.registerTool('list_vaults', {
 server.registerTool('get_vault_stats', {
   description: 'Return vault statistics. Returns {name, path, files, folders, size_bytes}.',
   inputSchema: {
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     name: z.string(),
@@ -427,7 +427,7 @@ server.registerTool('execute_command', {
   description: 'Execute any Obsidian command by its ID (e.g. "daily-notes:goto-today"). Use list_commands to discover IDs.',
   inputSchema: {
     id: z.string().describe('Command ID'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: { ok: z.boolean() },
 }, ({ id, vault }) => {
@@ -439,7 +439,7 @@ server.registerTool('list_commands', {
   description: 'List available Obsidian commands. Returns [{id, name}].',
   inputSchema: {
     filter: z.string().optional().describe('Filter by ID prefix (e.g. "daily-notes")'),
-    vault: z.string().optional().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
+    vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
   },
   outputSchema: {
     commands: z.array(z.object({ id: z.string(), name: z.string() })),
