@@ -46,9 +46,16 @@ server.registerTool('run_command', {
     env: z.record(z.string()).optional().describe('Extra environment variables to merge into the process env'),
     timeout: z.number().int().default(30).describe('Max seconds to wait (default 30)'),
   },
+  outputSchema: z.object({
+    stdout: z.string(),
+    stderr: z.string(),
+    exit_code: z.number(),
+    success: z.boolean(),
+    command: z.string(),
+  }),
 }, async ({ command, cwd, env, timeout }) => {
   const result = await runBash(command, cwd, env, timeout);
-  return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('run_script', {
@@ -59,6 +66,13 @@ server.registerTool('run_script', {
     env: z.record(z.string()).optional().describe('Extra environment variables'),
     timeout: z.number().int().default(60).describe('Max seconds (default 60)'),
   },
+  outputSchema: z.object({
+    stdout: z.string(),
+    stderr: z.string(),
+    exit_code: z.number(),
+    success: z.boolean(),
+    command: z.string(),
+  }),
 }, async ({ script, cwd, env, timeout }) => {
   const scriptPath = nodePath.join(os.tmpdir(), `streamdeck_${Date.now()}.sh`);
   try {
@@ -75,7 +89,7 @@ server.registerTool('run_script', {
         resolve({ stdout: stdout ?? '', stderr: stderr ?? '', exit_code: typeof exit_code === 'number' ? exit_code : -1, success: !err, command: `<script (${script.split('\n').length} lines)>` });
       });
     });
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } finally {
     try { await unlink(scriptPath); } catch {}
   }
@@ -89,6 +103,11 @@ server.registerTool('open_in_terminal', {
     app: z.string().default('auto').describe('Which terminal to use: "Terminal", "iTerm", or "auto" (auto picks iTerm if installed).'),
     new_window: z.boolean().default(true).describe('If true (default), open a new window. If false, open a new tab (Terminal.app only).'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    app: z.string(),
+    message: z.string(),
+  }),
 }, async ({ command, cwd, app, new_window }) => {
   const resolved = resolveCwd(cwd) ?? os.homedir();
 
@@ -118,9 +137,11 @@ server.registerTool('open_in_terminal', {
   try {
     await execFileAsync('osascript', ['-e', script]);
     const msg = `Opened ${app}` + (cwd ? ` in ${resolved}` : '') + (command ? ` running: ${command}` : '');
-    return { content: [{ type: 'text', text: JSON.stringify({ success: true, app, message: msg }) }] };
+    const result = { success: true, app, message: msg };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch (e) {
-    return { content: [{ type: 'text', text: JSON.stringify({ success: false, app, message: String(e.message) }) }] };
+    const result = { success: false, app, message: String(e.message) };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });
 
@@ -129,12 +150,19 @@ server.registerTool('which', {
   inputSchema: {
     command: z.string().describe('Command name to look up. Example: "git", "python3", "claude"'),
   },
+  outputSchema: z.object({
+    found: z.boolean(),
+    path: z.string(),
+    command: z.string(),
+  }),
 }, async ({ command }) => {
   try {
     const { stdout } = await execFileAsync('which', [command]);
-    return { content: [{ type: 'text', text: JSON.stringify({ found: true, path: stdout.trim(), command }) }] };
+    const result = { found: true, path: stdout.trim(), command };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({ found: false, path: '', command }) }] };
+    const result = { found: false, path: '', command };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });
 
@@ -143,6 +171,7 @@ server.registerTool('get_env', {
   inputSchema: {
     keys: z.array(z.string()).optional().describe('List of variable names to fetch. If empty, returns a useful subset: PATH, HOME, USER, SHELL, PWD, LANG, TERM, etc.'),
   },
+  outputSchema: z.record(z.string()),
 }, async ({ keys }) => {
   const defaults = ['PATH', 'HOME', 'USER', 'SHELL', 'PWD', 'LANG', 'TERM', 'VIRTUAL_ENV', 'CONDA_DEFAULT_ENV', 'NVM_DIR', 'GOPATH'];
   const wanted = keys?.length ? keys : defaults;
@@ -150,7 +179,7 @@ server.registerTool('get_env', {
   for (const k of wanted) {
     if (process.env[k] !== undefined) result[k] = process.env[k];
   }
-  return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────

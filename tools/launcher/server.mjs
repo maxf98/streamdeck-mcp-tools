@@ -26,9 +26,14 @@ server.registerTool('open_app', {
   inputSchema: {
     name: z.string().describe('Application name as it appears in /Applications (without .app)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    app: z.string(),
+  }),
 }, async ({ name }) => {
   await open('-a', name);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, app: name }) }] };
+  const result = { success: true, app: name };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -38,9 +43,14 @@ server.registerTool('open_folder', {
   inputSchema: {
     path: z.string().describe('Absolute path to the folder'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    path: z.string(),
+  }),
 }, async ({ path }) => {
   await open(path);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, path }) }] };
+  const result = { success: true, path };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -52,13 +62,18 @@ server.registerTool('open_url', {
     url: z.string().describe('URL to open'),
     browser: z.string().default('').describe('Browser app name (empty = default browser)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    url: z.string(),
+  }),
 }, async ({ url, browser }) => {
   if (browser.trim()) {
     await open('-a', browser.trim(), url);
   } else {
     await open(url);
   }
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, url }) }] };
+  const result = { success: true, url };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -69,9 +84,14 @@ server.registerTool('reveal_in_finder', {
   inputSchema: {
     path: z.string().describe('Absolute path to the file or folder to reveal'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    path: z.string(),
+  }),
 }, async ({ path }) => {
   await open('-R', path);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, path }) }] };
+  const result = { success: true, path };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -83,9 +103,15 @@ server.registerTool('open_with', {
     path: z.string().describe('Absolute path to the file or folder'),
     app:  z.string().describe('Application name (e.g. "Cursor", "Photoshop", "Visual Studio Code")'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    path: z.string(),
+    app: z.string(),
+  }),
 }, async ({ path, app }) => {
   await open('-a', app, path);
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, path, app }) }] };
+  const result = { success: true, path, app };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────

@@ -64,11 +64,17 @@ async function getClipboardTypes() {
 server.registerTool('get_clipboard', {
   description: 'Get the current text contents of the system clipboard. Returns {text, length, available_types}.',
   inputSchema: {},
+  outputSchema: z.object({
+    text: z.string(),
+    length: z.number(),
+    available_types: z.array(z.string()),
+  }),
 }, async () => {
   const text = await getClipboardText();
   const types = await getClipboardTypes();
   if (text) addToHistory(text);
-  return { content: [{ type: 'text', text: JSON.stringify({ text, length: text.length, available_types: types }) }] };
+  const result = { text, length: text.length, available_types: types };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('set_clipboard', {
@@ -76,29 +82,47 @@ server.registerTool('set_clipboard', {
   inputSchema: {
     text: z.string().describe('The text to place on the clipboard'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+    length: z.number(),
+  }),
 }, async ({ text }) => {
   await setClipboardText(text);
   addToHistory(text, 'set_clipboard');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `Clipboard set (${text.length} chars)`, length: text.length }) }] };
+  const result = { success: true, message: `Clipboard set (${text.length} chars)`, length: text.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('get_clipboard_info', {
   description: 'Get information about all data types currently on the clipboard. Returns {types, has_text, has_image, has_file_urls, type_count}.',
   inputSchema: {},
+  outputSchema: z.object({
+    types: z.array(z.string()),
+    has_text: z.boolean(),
+    has_image: z.boolean(),
+    has_file_urls: z.boolean(),
+    type_count: z.number(),
+  }),
 }, async () => {
   const types = await getClipboardTypes();
-  return { content: [{ type: 'text', text: JSON.stringify({
+  const result = {
     types,
     has_text: types.includes('plain_text'),
     has_image: types.includes('image'),
     has_file_urls: types.includes('file_url'),
     type_count: types.length,
-  }) }] };
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('get_clipboard_image_info', {
   description: 'Check if there is an image on the clipboard and return its type. Returns {has_image, format} or {has_image: false}.',
   inputSchema: {},
+  outputSchema: z.object({
+    has_image: z.boolean(),
+    format: z.string().optional(),
+  }),
 }, async () => {
   try {
     const { stdout } = await execFileAsync('osascript', ['-e', 'clipboard info']);
@@ -106,20 +130,28 @@ server.registerTool('get_clipboard_image_info', {
     const hasPng = text.includes('png');
     const hasTiff = text.includes('tiff');
     if (hasPng || hasTiff) {
-      return { content: [{ type: 'text', text: JSON.stringify({ has_image: true, format: hasPng ? 'png' : 'tiff' }) }] };
+      const result = { has_image: true, format: hasPng ? 'png' : 'tiff' };
+      return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
     }
-    return { content: [{ type: 'text', text: JSON.stringify({ has_image: false }) }] };
+    const result = { has_image: false };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({ has_image: false }) }] };
+    const result = { has_image: false };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });
 
 server.registerTool('clear_clipboard', {
   description: 'Clear the system clipboard of all content. Returns {success, message}.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+  }),
 }, async () => {
   await setClipboardText('');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: 'Clipboard cleared' }) }] };
+  const result = { success: true, message: 'Clipboard cleared' };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('append_to_clipboard', {
@@ -128,12 +160,18 @@ server.registerTool('append_to_clipboard', {
     text: z.string().describe('The text to append'),
     separator: z.string().default('\n').describe('Separator between existing content and new text (default: newline)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+    length: z.number(),
+  }),
 }, async ({ text, separator }) => {
   const current = await getClipboardText();
   const newText = current + separator + text;
   await setClipboardText(newText);
   addToHistory(newText, 'append_to_clipboard');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `Appended to clipboard (${newText.length} chars total)`, length: newText.length }) }] };
+  const result = { success: true, message: `Appended to clipboard (${newText.length} chars total)`, length: newText.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('prepend_to_clipboard', {
@@ -142,12 +180,18 @@ server.registerTool('prepend_to_clipboard', {
     text: z.string().describe('The text to prepend'),
     separator: z.string().default('\n').describe('Separator between new text and existing content (default: newline)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+    length: z.number(),
+  }),
 }, async ({ text, separator }) => {
   const current = await getClipboardText();
   const newText = text + separator + current;
   await setClipboardText(newText);
   addToHistory(newText, 'prepend_to_clipboard');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `Prepended to clipboard (${newText.length} chars total)`, length: newText.length }) }] };
+  const result = { success: true, message: `Prepended to clipboard (${newText.length} chars total)`, length: newText.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('transform_clipboard', {
@@ -155,6 +199,12 @@ server.registerTool('transform_clipboard', {
   inputSchema: {
     operation: z.string().describe('Transformation to apply: uppercase | lowercase | titlecase | trim | strip_newlines | sort_lines | unique_lines | reverse_lines | number_lines | remove_blank_lines'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    operation: z.string(),
+    length: z.number(),
+    preview: z.string(),
+  }),
 }, async ({ operation }) => {
   const current = await getClipboardText();
   if (!current) throw new Error('Clipboard is empty or has no text');
@@ -178,7 +228,8 @@ server.registerTool('transform_clipboard', {
   await setClipboardText(transformed);
   addToHistory(transformed, `transform:${operation}`);
   const preview = transformed.slice(0, 200) + (transformed.length > 200 ? '...' : '');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, operation, length: transformed.length, preview }) }] };
+  const result = { success: true, operation, length: transformed.length, preview };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('find_and_replace_clipboard', {
@@ -187,17 +238,27 @@ server.registerTool('find_and_replace_clipboard', {
     find: z.string().describe('The text to search for'),
     replace: z.string().describe('The text to replace it with'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    replacements: z.number(),
+    length: z.number().optional(),
+    message: z.string().optional(),
+  }),
 }, async ({ find, replace }) => {
   const current = await getClipboardText();
   if (!current) throw new Error('Clipboard is empty or has no text');
 
   const count = current.split(find).length - 1;
-  if (count === 0) return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: 'No matches found', replacements: 0 }) }] };
+  if (count === 0) {
+    const result = { success: true, message: 'No matches found', replacements: 0 };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
 
   const transformed = current.split(find).join(replace);
   await setClipboardText(transformed);
   addToHistory(transformed, 'find_and_replace');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, replacements: count, length: transformed.length }) }] };
+  const result = { success: true, replacements: count, length: transformed.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('get_clipboard_history', {
@@ -205,6 +266,15 @@ server.registerTool('get_clipboard_history', {
   inputSchema: {
     limit: z.number().int().default(20).describe('Maximum number of history entries to return'),
   },
+  outputSchema: z.object({
+    entries: z.array(z.object({
+      text: z.string(),
+      full_length: z.number(),
+      timestamp: z.string(),
+      source: z.string(),
+    })),
+    total_in_history: z.number(),
+  }),
 }, async ({ limit }) => {
   // Snapshot current clipboard
   const text = await getClipboardText();
@@ -216,7 +286,8 @@ server.registerTool('get_clipboard_history', {
     timestamp: e.timestamp,
     source: e.source,
   }));
-  return { content: [{ type: 'text', text: JSON.stringify({ entries, total_in_history: _history.length }) }] };
+  const result = { entries, total_in_history: _history.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('restore_from_history', {
@@ -224,22 +295,35 @@ server.registerTool('restore_from_history', {
   inputSchema: {
     index: z.number().int().describe('The 0-based index in the history (0 = most recent)'),
   },
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+    preview: z.string(),
+    length: z.number(),
+  }),
 }, async ({ index }) => {
   if (index < 0 || index >= _history.length)
     throw new Error(`Invalid index ${index}. History has ${_history.length} entries (0-${_history.length - 1}).`);
   const text = _history[index].text;
   await setClipboardText(text);
   const preview = text.slice(0, 200) + (text.length > 200 ? '...' : '');
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `Restored entry ${index} to clipboard`, preview, length: text.length }) }] };
+  const result = { success: true, message: `Restored entry ${index} to clipboard`, preview, length: text.length };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 server.registerTool('clear_clipboard_history', {
   description: 'Clear the in-memory clipboard history. Does not affect the current clipboard. Returns {success, message, entries_cleared}.',
   inputSchema: {},
+  outputSchema: z.object({
+    success: z.boolean(),
+    message: z.string(),
+    entries_cleared: z.number(),
+  }),
 }, async () => {
   const count = _history.length;
   _history.length = 0;
-  return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `Cleared ${count} history entries`, entries_cleared: count }) }] };
+  const result = { success: true, message: `Cleared ${count} history entries`, entries_cleared: count };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
