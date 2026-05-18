@@ -11,10 +11,6 @@ import { join } from 'node:path';
 const execFileAsync = promisify(execFile);
 const server = new McpServer({ name: 'screenshot', version: '1.1.0' });
 
-function sc(result) {
-  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
-}
-
 function defaultSavePath(ext = 'png') {
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   return join(homedir(), 'Desktop', `Screenshot-${ts}.${ext}`);
@@ -125,7 +121,8 @@ server.registerTool('take_screenshot', {
 
   const dest = save_path ?? defaultSavePath();
   await captureToPath(args, dest);
-  return sc({ success: true, target, path: dest });
+  const result = { success: true, target, path: dest };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -164,7 +161,8 @@ server.registerTool('start_screen_recording', {
 
   proc.on('exit', () => { _recording = null; });
 
-  return sc({ success: true, path: dest, message: 'Recording started. Call stop_screen_recording to finish.' });
+  const result = { success: true, path: dest, message: 'Recording started. Call stop_screen_recording to finish.' };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -179,14 +177,16 @@ server.registerTool('stop_screen_recording', {
   },
 }, async () => {
   if (!_recording) {
-    return sc({ success: false, path: null, message: 'No recording in progress.' });
+    const result = { success: false, path: null, message: 'No recording in progress.' };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
   }
   const { proc, path } = _recording;
   proc.kill('SIGINT');
   // Give screencapture a moment to finalise the file
   await new Promise(resolve => setTimeout(resolve, 1500));
   _recording = null;
-  return sc({ success: true, path, message: `Recording saved to ${path}` });
+  const result = { success: true, path, message: `Recording saved to ${path}` };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
@@ -228,7 +228,8 @@ server.registerTool('list_windows', {
     }
     JSON.stringify(result);
   `]);
-  return sc({ windows: JSON.parse(stdout.trim()) });
+  const result = { windows: JSON.parse(stdout.trim()) };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
