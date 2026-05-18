@@ -107,6 +107,31 @@
             "path": "tools/launcher"
         },
         {
+            "id": "obsidian",
+            "name": "Obsidian",
+            "description": "Read and write notes in your Obsidian vault via the Local REST API plugin. Requires the plugin installed and running in Obsidian.",
+            "version": "2.0.0",
+            "type": "local-http",
+            "url": "http://127.0.0.1:27123/mcp/",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "notes",
+                "obsidian",
+                "markdown",
+                "knowledge-base"
+            ],
+            "config_schema": {
+                "token": {
+                    "description": "API key from the Local REST API plugin settings in Obsidian",
+                    "env": "_token",
+                    "type": "secret",
+                    "required": true
+                }
+            }
+        },
+        {
             "id": "openai",
             "name": "OpenAI",
             "description": "Structured LLM calls, image analysis (GPT-4o vision), and Whisper audio transcription. All tools share a single API key.",
