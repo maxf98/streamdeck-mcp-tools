@@ -107,22 +107,6 @@
             "path": "tools/launcher"
         },
         {
-            "id": "obsidian",
-            "name": "Obsidian",
-            "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
-            "version": "1.1.0",
-            "platform": [
-                "darwin"
-            ],
-            "tags": [
-                "notes",
-                "obsidian",
-                "markdown",
-                "knowledge-base"
-            ],
-            "path": "tools/obsidian"
-        },
-        {
             "id": "openai",
             "name": "OpenAI",
             "description": "Structured LLM calls, image analysis (GPT-4o vision), and Whisper audio transcription. All tools share a single API key.",
