@@ -96,51 +96,27 @@ server.registerTool('run_script', {
 });
 
 server.registerTool('open_in_terminal', {
-  description: 'Open Terminal.app (or iTerm2) and optionally run a command interactively. Great for interactive programs like `claude`, `python`, `ssh`. Returns {success, app, message}.',
+  description: 'Open Terminal.app and optionally run a command interactively. Great for interactive programs like `claude`, `python`, `ssh`. Returns {success, message}.',
   inputSchema: {
     command: z.string().default('').describe('Command to run in the terminal. Leave empty to just open a shell.'),
     cwd: z.string().default('').describe('Directory to open in. Supports ~ and $ENV_VAR. Defaults to $HOME.'),
-    app: z.string().default('auto').describe('Which terminal to use: "Terminal", "iTerm", or "auto" (auto picks iTerm if installed).'),
-    new_window: z.boolean().default(true).describe('If true (default), open a new window. If false, open a new tab (Terminal.app only).'),
   },
   outputSchema: z.object({
     success: z.boolean(),
-    app: z.string(),
     message: z.string(),
   }),
-}, async ({ command, cwd, app, new_window }) => {
+}, async ({ command, cwd }) => {
   const resolved = resolveCwd(cwd) ?? os.homedir();
-
-  // Auto-detect iTerm2
-  if (app === 'auto') {
-    try {
-      const { stdout } = await execFileAsync('osascript', ['-e', 'tell application "System Events" to return (exists process "iTerm2")']);
-      app = stdout.trim() === 'true' ? 'iTerm' : 'Terminal';
-    } catch {
-      app = 'Terminal';
-    }
-  }
-
-  // AppleScript string quoting
-  const asStr = s => '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
   const shellCmd = `cd ${resolved.replace(/ /g, '\\ ')}` + (command ? ` && ${command}` : '');
-
-  let script;
-  if (app === 'iTerm') {
-    script = `tell application "iTerm2"\n  activate\n  set w to (create window with default profile)\n  tell current session of w\n    write text ${asStr(shellCmd)}\n  end tell\nend tell`;
-  } else if (new_window) {
-    script = `tell application "Terminal"\n  activate\n  do script ${asStr(shellCmd)}\nend tell`;
-  } else {
-    script = `tell application "Terminal"\n  activate\n  tell front window\n    do script ${asStr(shellCmd)} in selected tab\n  end tell\nend tell`;
-  }
+  const asStr = s => '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  const script = `tell application "Terminal"\n  activate\n  do script ${asStr(shellCmd)}\nend tell`;
 
   try {
     await execFileAsync('osascript', ['-e', script]);
-    const msg = `Opened ${app}` + (cwd ? ` in ${resolved}` : '') + (command ? ` running: ${command}` : '');
-    const result = { success: true, app, message: msg };
-    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+    const msg = `Opened Terminal` + (cwd ? ` in ${resolved}` : '') + (command ? ` running: ${command}` : '');
+    return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: msg }) }], structuredContent: { success: true, message: msg } };
   } catch (e) {
-    const result = { success: false, app, message: String(e.message) };
+    const result = { success: false, message: String(e.message) };
     return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   }
 });

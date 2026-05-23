@@ -39,7 +39,7 @@
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
