@@ -64,8 +64,10 @@ async function getScreencaptureArgs(target, display, region) {
     return ['-x', '-R', `${b.x},${b.y},${b.width},${b.height}`];
   }
   if (target === 'window_pick') {
-    // Interactive: shows camera cursor, user clicks the window they want
     return ['-w'];
+  }
+  if (target === 'region_select') {
+    return ['-s'];
   }
   // region
   if (!region) throw new Error('region param is required when target is "region"');
@@ -85,9 +87,10 @@ server.registerTool('take_screenshot', {
     'Pass save_path="base64" to get raw base64 image data instead (useful for AI vision). ' +
     'target options: "screen" (full display), "frontmost_window" (auto-detect active window), ' +
     '"window_pick" (shows camera cursor — click the window you want), ' +
+    '"region_select" (interactive crosshair — drag to select a region), ' +
     '"region" (explicit x/y/width/height coordinates).',
   inputSchema: {
-    target: z.enum(['screen', 'frontmost_window', 'window_pick', 'region']).default('screen').describe(
+    target: z.enum(['screen', 'frontmost_window', 'window_pick', 'region_select', 'region']).default('screen').describe(
       'What to capture'
     ),
     save_path: z.string().optional().describe(
