@@ -9,6 +9,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 
 const execFileAsync = promisify(execFile);
 const server = new McpServer({ name: 'ClipboardMCP', version: '1.0.0' });
@@ -42,6 +46,24 @@ async function setClipboardText(text) {
   });
 }
 
+async function getClipboardImage() {
+  const tmp = join(tmpdir(), `mcp-clip-img-${randomUUID()}.png`);
+  try {
+    await execFileAsync('osascript', ['-e',
+      `set imgData to the clipboard as «class PNGf»
+       set f to open for access (POSIX file "${tmp}") with write permission
+       write imgData to f
+       close access f`
+    ]);
+    const buf = await readFile(tmp);
+    return buf.toString('base64');
+  } catch {
+    return null;
+  } finally {
+    await unlink(tmp).catch(() => {});
+  }
+}
+
 async function getClipboardTypes() {
   // osascript clipboard info returns lines like: «class utf8», «class HTML», etc.
   try {
@@ -62,40 +84,110 @@ async function getClipboardTypes() {
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_clipboard', {
-  description: 'Get the current text contents of the system clipboard. Returns {text, length, available_types}.',
-  inputSchema: {},
+  description:
+    'Get the current clipboard contents. Auto-detects content type and returns accordingly: ' +
+    'text is returned as a text content block, images as base64 image content (viewable by vision models). ' +
+    'Also reports available_types so you know what else is on the clipboard.',
+  inputSchema: {
+    prefer: z.enum(['text', 'image']).optional().describe(
+      'Which format to prefer when clipboard has both text and image (default: auto-detect primary type)'
+    ),
+  },
   outputSchema: z.object({
-    text: z.string(),
-    length: z.number(),
+    type: z.string(),
+    length: z.number().optional(),
     available_types: z.array(z.string()),
   }),
-}, async () => {
-  const text = await getClipboardText();
+}, async ({ prefer }) => {
   const types = await getClipboardTypes();
+  const hasImage = types.includes('image');
+  const hasText = types.includes('plain_text');
+
+  const wantImage = prefer === 'image' || (hasImage && !hasText) || (hasImage && prefer !== 'text');
+
+  if (wantImage && hasImage) {
+    const base64 = await getClipboardImage();
+    if (base64) {
+      return {
+        content: [
+          { type: 'image', data: base64, mimeType: 'image/png' },
+          { type: 'text', text: JSON.stringify({ type: 'image', available_types: types }) },
+        ],
+        structuredContent: { type: 'image', available_types: types },
+      };
+    }
+  }
+
+  const text = await getClipboardText();
   if (text) addToHistory(text);
-  const result = { text, length: text.length, available_types: types };
-  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  const result = { type: 'text', length: text.length, available_types: types };
+  return {
+    content: [{ type: 'text', text: text || '(clipboard is empty)' }],
+    structuredContent: result,
+  };
 });
 
 server.registerTool('set_clipboard', {
-  description: 'Set the system clipboard to the given plain text. Returns {success, message, length}.',
+  description:
+    'Set the system clipboard. Supports multiple content types: ' +
+    '"text" (plain text string), "html" (HTML string — also sets plain text fallback), ' +
+    '"image_file" (path to an image file), "image_base64" (raw base64 PNG/JPEG data). ' +
+    'Returns {success, message, type}.',
   inputSchema: {
-    text: z.string().describe('The text to place on the clipboard'),
+    type: z.enum(['text', 'html', 'image_file', 'image_base64']).default('text').describe('Content type to set'),
+    content: z.string().describe(
+      'The content: plain text string, HTML string, absolute file path, or base64-encoded image data'
+    ),
   },
   outputSchema: z.object({
     success: z.boolean(),
     message: z.string(),
-    length: z.number(),
+    type: z.string(),
   }),
-}, async ({ text }) => {
-  await setClipboardText(text);
-  addToHistory(text, 'set_clipboard');
-  const result = { success: true, message: `Clipboard set (${text.length} chars)`, length: text.length };
-  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+}, async ({ type, content }) => {
+  if (type === 'text') {
+    await setClipboardText(content);
+    addToHistory(content, 'set_clipboard');
+    const result = { success: true, message: `Clipboard set to text (${content.length} chars)`, type };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
+  if (type === 'html') {
+    await execFileAsync('osascript', ['-e',
+      `set the clipboard to {text:\"${content.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}\" as Unicode text, «class HTML»:«data HTML${Buffer.from(content).toString('hex')}»}`
+    ]);
+    addToHistory(content, 'set_clipboard_html');
+    const result = { success: true, message: `Clipboard set to HTML (${content.length} chars)`, type };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
+  if (type === 'image_file') {
+    await execFileAsync('osascript', ['-e',
+      `set the clipboard to (read (POSIX file "${content}") as «class PNGf»)`
+    ]);
+    const result = { success: true, message: `Clipboard set to image from ${content}`, type };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
+  if (type === 'image_base64') {
+    const tmp = join(tmpdir(), `mcp-clip-${randomUUID()}.png`);
+    await writeFile(tmp, Buffer.from(content, 'base64'));
+    try {
+      await execFileAsync('osascript', ['-e',
+        `set the clipboard to (read (POSIX file "${tmp}") as «class PNGf»)`
+      ]);
+    } finally {
+      await unlink(tmp).catch(() => {});
+    }
+    const result = { success: true, message: 'Clipboard set to image from base64 data', type };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
+  throw new Error(`Unknown type: ${type}`);
 });
 
 server.registerTool('get_clipboard_info', {
-  description: 'Get information about all data types currently on the clipboard. Returns {types, has_text, has_image, has_file_urls, type_count}.',
+  description: 'Get information about all data types currently on the clipboard without reading the content. Returns {types, has_text, has_image, has_file_urls, type_count}.',
   inputSchema: {},
   outputSchema: z.object({
     types: z.array(z.string()),
@@ -114,31 +206,6 @@ server.registerTool('get_clipboard_info', {
     type_count: types.length,
   };
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
-});
-
-server.registerTool('get_clipboard_image_info', {
-  description: 'Check if there is an image on the clipboard and return its type. Returns {has_image, format} or {has_image: false}.',
-  inputSchema: {},
-  outputSchema: z.object({
-    has_image: z.boolean(),
-    format: z.string().optional(),
-  }),
-}, async () => {
-  try {
-    const { stdout } = await execFileAsync('osascript', ['-e', 'clipboard info']);
-    const text = stdout.toLowerCase();
-    const hasPng = text.includes('png');
-    const hasTiff = text.includes('tiff');
-    if (hasPng || hasTiff) {
-      const result = { has_image: true, format: hasPng ? 'png' : 'tiff' };
-      return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
-    }
-    const result = { has_image: false };
-    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
-  } catch {
-    const result = { has_image: false };
-    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
-  }
 });
 
 server.registerTool('clear_clipboard', {
