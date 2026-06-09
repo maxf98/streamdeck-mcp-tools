@@ -33,9 +33,11 @@ server.registerTool('call_llm', {
     temperature: z.number().default(0).describe('Sampling temperature (default: 0)'),
     max_tokens: z.number().int().default(4096).describe('Max tokens in the response'),
   },
-  outputSchema: z.object({
-    result: z.string(),
-  }),
+  // The model returns JSON matching the caller's `schema`. We parse it and return
+  // those fields at the TOP LEVEL (structuredContent) so callers read e.g.
+  // result.translation directly — no JSON.parse needed. `result` (the raw JSON
+  // string) is kept for backward compatibility.
+  outputSchema: z.object({}).passthrough(),
 }, async ({ prompt, schema, system_prompt, model, temperature, max_tokens }) => {
   const key = apiKey();
   const schemaCopy = { ...schema };
@@ -75,9 +77,17 @@ server.registerTool('call_llm', {
   const content = choice?.message?.content;
   if (!content) throw new Error('Empty response from OpenAI');
 
+  // Parse the schema-conformant JSON and surface its fields at the top level, so
+  // the structured result IS what the caller asked for (e.g. { translation }).
+  let parsed;
+  try { parsed = JSON.parse(content); } catch { parsed = null; }
+  const structured = (parsed && typeof parsed === 'object')
+    ? { ...parsed, result: content }   // fields + raw string (back-compat)
+    : { result: content };
+
   return {
     content: [{ type: 'text', text: content }],
-    structuredContent: { result: content },
+    structuredContent: structured,
   };
 });
 
@@ -96,9 +106,9 @@ server.registerTool('analyze_image', {
     model: z.string().default('gpt-4o-mini').describe('OpenAI vision model (default: gpt-4o-mini)'),
     max_tokens: z.number().int().default(1024).describe('Max tokens in the response'),
   },
-  outputSchema: z.object({
-    result: z.string(),
-  }),
+  // With a `schema`, structured fields are surfaced at the top level (plus `result`
+  // as the raw string); without one, just `result` (the plain-text answer).
+  outputSchema: z.object({}).passthrough(),
 }, async ({ prompt, image_path, image_base64, image_mime, schema, system_prompt, model, max_tokens }) => {
   const key = apiKey();
 
@@ -148,9 +158,16 @@ server.registerTool('analyze_image', {
   const content = choice?.message?.content;
   if (!content) throw new Error('Empty response from OpenAI');
 
+  // If a schema was requested, content is JSON — surface its fields at top level.
+  let parsed = null;
+  if (schema) { try { parsed = JSON.parse(content); } catch { parsed = null; } }
+  const structured = (parsed && typeof parsed === 'object')
+    ? { ...parsed, result: content }
+    : { result: content };
+
   return {
     content: [{ type: 'text', text: content }],
-    structuredContent: { result: content },
+    structuredContent: structured,
   };
 });
 
