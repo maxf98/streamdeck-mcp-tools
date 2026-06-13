@@ -2,7 +2,7 @@
   "id": "voice",
   "name": "Voice Recording",
   "description": "Record microphone audio for transcription. Ships a Stream Deck key face and an on-screen recorder popup as MCP App UI resources; the popup captures the mic in-browser and saves a WebM file whose path you can hand to a transcription tool (e.g. openai__transcribe_file).",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",
