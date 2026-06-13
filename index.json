@@ -36,6 +36,27 @@
             "path": "tools/apple_reminders"
         },
         {
+            "id": "audio",
+            "name": "Audio",
+            "description": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
+            "version": "3.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "system",
+                "volume",
+                "audio",
+                "input",
+                "output",
+                "microphone",
+                "devices",
+                "macos",
+                "resource"
+            ],
+            "path": "tools/audio"
+        },
+        {
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
@@ -198,6 +219,26 @@
                 "macos"
             ],
             "path": "tools/screenshot"
+        },
+        {
+            "id": "voice",
+            "name": "Voice Recording",
+            "description": "Record microphone audio for transcription. Ships a Stream Deck key face and an on-screen recorder popup as MCP App UI resources; the popup captures the mic in-browser and saves a WebM file whose path you can hand to a transcription tool (e.g. openai__transcribe_file).",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "voice",
+                "recording",
+                "microphone",
+                "audio",
+                "transcription",
+                "dictation",
+                "ui",
+                "popup"
+            ],
+            "path": "tools/voice"
         },
         {
             "id": "vscode",

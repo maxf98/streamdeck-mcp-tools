@@ -154,11 +154,12 @@ All packs need `@modelcontextprotocol/sdk` and `zod`. Add other dependencies as 
 
 | Pack | Platform | Description |
 |---|---|---|
+| `audio` | macOS | Live output/input volume + mute and audio-device switching as MCP resources |
 | `bash` | macOS | Run shell commands, open Terminal windows |
 | `clipboard` | macOS | Read, write and manage the clipboard |
 | `launcher` | macOS | Open apps, folders, URLs, reveal in Finder |
 | `obsidian` | cross | Read/write notes in an Obsidian vault |
 | `openai` | cross | GPT structured output + Whisper transcription |
-| `voice_recorder` | macOS | Record audio via QuickTime Player |
+| `voice` | macOS | Record microphone audio (Stream Deck key + on-screen recorder popup as UI resources); saves a WebM file for transcription |
 | `vscode` | cross | Control VS Code via the streamdeck-vscode extension |
 | `window_management` | macOS | Move and resize windows across screens |
