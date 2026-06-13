@@ -13,11 +13,13 @@
  *                                       key live-updates idle ↔ recording with no
  *                                       press (the design's persistent/ambient
  *                                       mode). Pressing it opens the recorder popup.
- *   ui://voice/popup  surface "popup" → an on-screen recorder pill. It runs
- *                                       getUserMedia + MediaRecorder in the host's
- *                                       popup window (which is why it declares
- *                                       `_meta.ui.permissions: ["microphone"]` —
- *                                       the host grants the iframe mic access from
+ *   ui://voice/popup  surface "popup" → an on-screen recorder pill. Opens IDLE
+ *                                       with a Record/Stop button (pass data
+ *                                       { autoStart: true } to begin recording on
+ *                                       open). It runs getUserMedia + MediaRecorder
+ *                                       in the host's popup window (which is why it
+ *                                       declares `_meta.ui.permissions: ["microphone"]`
+ *                                       — the host grants the iframe mic access from
  *                                       that, the spec-standard MCP Apps way), and
  *                                       on stop base64-encodes the WebM and calls
  *                                       voice__save_recording over the App bridge.
@@ -117,7 +119,7 @@ function Face({ data }) {
 // Starts capturing on mount, shows an animated pill + timer, and on stop encodes
 // the WebM and calls voice__save_recording via the host bridge (window.mcp).
 const POPUP_JSX = `
-function Popup({ submitPopup, cancelPopup }) {
+function Popup({ data, submitPopup, cancelPopup }) {
   const [phase, setPhase] = React.useState('idle'); // idle | recording | saving | error
   const [seconds, setSeconds] = React.useState(0);
   const [error, setError] = React.useState('');
@@ -149,9 +151,12 @@ function Popup({ submitPopup, cancelPopup }) {
     }
   }, []);
 
-  // Auto-start on open; if the mic isn't available we land back on idle (above).
+  // Default: open IDLE and wait for the user to press Record. Recording only
+  // begins automatically when the popup is opened with data.autoStart === true
+  // (e.g. a "start recording now" button passes it). If the mic isn't available
+  // an auto-start lands back on idle (handled in start() above).
   React.useEffect(() => {
-    start();
+    if (data && data.autoStart) start();
     return () => {
       if (timer.current) clearInterval(timer.current);
       if (stream.current) stream.current.getTracks().forEach((t) => t.stop());
@@ -161,7 +166,7 @@ function Popup({ submitPopup, cancelPopup }) {
         window.mcp.callTool('voice', 'set_recording', { recording: false }).catch(() => {});
       }
     };
-  }, [start]);
+  }, [start, data]);
 
   const stop = React.useCallback(() => {
     const r = rec.current;
@@ -255,7 +260,7 @@ const RESOURCE_DESCRIPTORS = [
     {
         uri: URI_POPUP,
         name: "Voice — Recorder",
-        description: "On-screen microphone recorder pill. Captures audio and saves a WebM file.",
+        description: "On-screen microphone recorder. Opens idle with a Record/Stop button; captures audio and saves a WebM file.",
         mimeType: APP_MIME,
         _meta: { [SURFACE_NS]: { surface: "popup" }, ui: { permissions: ["microphone"] } },
     },
