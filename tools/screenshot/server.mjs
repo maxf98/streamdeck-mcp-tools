@@ -3,13 +3,21 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import * as z from 'zod/v4';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, unlink } from 'node:fs/promises';
+import { readFile, unlink, mkdir } from 'node:fs/promises';
 import { tmpdir, homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
 
 const execFileAsync = promisify(execFile);
-const server = new McpServer({ name: 'screenshot', version: '1.1.0' });
+const server = new McpServer({ name: 'screenshot', version: '1.2.0' });
+
+/** Expand a leading ~ to the home dir and resolve to an absolute path.
+ *  screencapture and Node do NOT expand ~, so a caller passing
+ *  "~/Desktop/screeners/foo.png" would otherwise write a literal "~" folder. */
+function resolveSavePath(p) {
+  if (p === '~' || p.startsWith('~/')) p = join(homedir(), p.slice(1));
+  return isAbsolute(p) ? p : join(homedir(), p);
+}
 
 function defaultSavePath(ext = 'png') {
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -22,6 +30,9 @@ function defaultRecordingPath() {
 }
 
 async function captureToPath(screencaptureArgs, destPath) {
+  // screencapture won't create missing parent dirs — make them first so a
+  // save_path like ~/Desktop/screeners/shot.png works even if screeners/ is new.
+  await mkdir(dirname(destPath), { recursive: true });
   await execFileAsync('screencapture', [...screencaptureArgs, destPath]);
 }
 
@@ -122,7 +133,7 @@ server.registerTool('take_screenshot', {
     };
   }
 
-  const dest = save_path ?? defaultSavePath();
+  const dest = save_path ? resolveSavePath(save_path) : defaultSavePath();
   await captureToPath(args, dest);
   const result = { success: true, target, path: dest };
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], structuredContent: result };
@@ -154,7 +165,8 @@ server.registerTool('start_screen_recording', {
 }, async ({ save_path, display, capture_audio }) => {
   if (_recording) throw new Error('A recording is already in progress. Call stop_screen_recording first.');
 
-  const dest = save_path ?? defaultRecordingPath();
+  const dest = save_path ? resolveSavePath(save_path) : defaultRecordingPath();
+  await mkdir(dirname(dest), { recursive: true });
   const args = ['-v', '-x', '-D', String((display ?? 0) + 1)];
   if (capture_audio) args.push('-g');
   args.push(dest);
