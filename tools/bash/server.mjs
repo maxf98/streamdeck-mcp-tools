@@ -214,21 +214,38 @@ function identityMatches(pid, command) {
   }
 }
 
-// Find a live process whose FULL command line matches `command` exactly, returning
-// its pid (or null). This is the ground-truth recovery path: our recorded pid can
-// be lost even though the process lives — e.g. this server (the child's parent) is
-// torn down by the host between presses, firing child 'exit' while the DETACHED
-// process keeps running and reparents to launchd. pgrep -f matches against the full
-// argv, and we require an exact command match so we don't adopt an unrelated process.
+// Find a live process matching `command`, returning its pid (or null). This is the
+// ground-truth recovery path: our recorded pid can be lost even though the process
+// lives — e.g. this server (the child's parent) is torn down by the host between
+// presses, firing child 'exit' while the DETACHED process keeps running and
+// reparents to launchd.
+//
+// We match on the command's ARGUMENT TAIL, not the whole string: when bash execs
+// the command the interpreter resolves to its full path (e.g. `python3` becomes
+// `/Library/.../Python`), so an exact full-command match would never hit. We strip
+// the first token (the executable) from both sides and require the remaining args
+// to match — distinctive enough (e.g. `-m http.server 8000`) to avoid adopting an
+// unrelated process, while tolerating the interpreter-path rewrite.
+function argTail(s) {
+  return s.trim().split(/\s+/).slice(1).join(' ');
+}
 function findPidByCommand(command) {
+  const wantTail = argTail(command);
+  if (!wantTail) return null; // no args to disambiguate on → refuse to guess
   try {
-    const out = execFileSync('pgrep', ['-f', command], { encoding: 'utf8' }).trim();
+    // Search by the arg tail, NOT the full command: the live argv has the
+    // interpreter resolved to its full path (`python3` → `/Library/.../Python`),
+    // so pgrep on the original command string wouldn't match. The tail
+    // (e.g. "-m http.server 8000") survives that rewrite.
+    // `--` terminates option parsing: the tail can start with a dash (e.g.
+    // "-m http.server 8000") which pgrep would otherwise read as a flag.
+    const out = execFileSync('pgrep', ['-f', '--', wantTail], { encoding: 'utf8' }).trim();
     const pids = out.split(/\s+/).map((s) => parseInt(s, 10)).filter((n) => Number.isInteger(n) && n !== process.pid);
     for (const pid of pids) {
       const cmd = execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' }).trim();
-      // Exact match: the live argv is exactly our command (pgrep -f also matches
-      // substrings/our own grep, so confirm via ps and require equality).
-      if (cmd === command) return pid;
+      // Confirm via the full argv tail so a loose pgrep substring hit can't
+      // adopt an unrelated process.
+      if (argTail(cmd) === wantTail) return pid;
     }
   } catch { /* pgrep exits non-zero when nothing matches */ }
   return null;
