@@ -214,16 +214,44 @@ function identityMatches(pid, command) {
   }
 }
 
-// Authoritative status from disk + the OS right now; reconciles the record when
-// the pid has died. null when there's no record for this handle.
+// Find a live process whose FULL command line matches `command` exactly, returning
+// its pid (or null). This is the ground-truth recovery path: our recorded pid can
+// be lost even though the process lives — e.g. this server (the child's parent) is
+// torn down by the host between presses, firing child 'exit' while the DETACHED
+// process keeps running and reparents to launchd. pgrep -f matches against the full
+// argv, and we require an exact command match so we don't adopt an unrelated process.
+function findPidByCommand(command) {
+  try {
+    const out = execFileSync('pgrep', ['-f', command], { encoding: 'utf8' }).trim();
+    const pids = out.split(/\s+/).map((s) => parseInt(s, 10)).filter((n) => Number.isInteger(n) && n !== process.pid);
+    for (const pid of pids) {
+      const cmd = execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' }).trim();
+      // Exact match: the live argv is exactly our command (pgrep -f also matches
+      // substrings/our own grep, so confirm via ps and require equality).
+      if (cmd === command) return pid;
+    }
+  } catch { /* pgrep exits non-zero when nothing matches */ }
+  return null;
+}
+
+// Authoritative status from disk + the OS right now. Self-healing: if the recorded
+// pid is gone but a live process still matches the command, ADOPT it (the process
+// outlived our handle). null when there's no record for this handle.
 function statusFor(id) {
   const rec = readRecord(id);
   if (!rec) return null;
-  const alive = pidExists(rec.pid) && identityMatches(rec.pid, rec.command);
-  if (rec.running !== alive) {
+  let alive = pidExists(rec.pid) && identityMatches(rec.pid, rec.command);
+  if (!alive && rec.command) {
+    // Recover a detached process whose pid we lost (e.g. parent torn down).
+    const found = findPidByCommand(rec.command);
+    if (found) { rec.pid = found; alive = true; }
+  }
+  if (rec.running !== alive || (alive && rec.pid == null)) {
     rec.running = alive;
     if (!alive) rec.pid = null;
     writeRecord(rec);
+  } else if (alive && readRecord(id)?.pid !== rec.pid) {
+    writeRecord(rec); // persist an adopted pid
   }
   return { process_id: rec.process_id, running: rec.running, pid: rec.pid ?? null, command: rec.command, startedAt: rec.startedAt ?? null };
 }
@@ -300,9 +328,15 @@ server.registerTool('start_process', {
   // Opportunistic instant-push if we're still resident when it dies; statusFor()
   // recomputes truth from the OS regardless, so this is latency-only.
   child.on('exit', () => {
+    // 'exit' fires both when the process really dies AND when WE (its parent) are
+    // torn down by the host while the DETACHED process keeps running. So don't
+    // trust it — verify against the OS. Only mark dead if the pid is truly gone
+    // and no live process still matches the command (statusFor does both).
     const r = readRecord(process_id);
-    if (r && r.pid === child.pid) { r.running = false; r.pid = null; writeRecord(r); }
-    notifyProcUpdated(process_id);
+    if (r && r.pid === child.pid && !pidExists(child.pid) && !findPidByCommand(command)) {
+      r.running = false; r.pid = null; writeRecord(r);
+      notifyProcUpdated(process_id);
+    }
   });
   notifyProcUpdated(process_id);
   const result = { process_id, pid: rec.pid, running: true, alreadyRunning: false };
@@ -314,12 +348,15 @@ server.registerTool('stop_process', {
   inputSchema: { process_id: z.string().describe('The handle returned by start_process.') },
   outputSchema: z.object({ process_id: z.string(), running: z.boolean() }),
 }, async ({ process_id }) => {
-  const rec = readRecord(process_id);
-  if (rec && rec.pid && pidExists(rec.pid)) {
+  // statusFor recovers the live pid by command if our recorded one was lost (e.g.
+  // the process outlived a prior server teardown), so stop works even then.
+  const status = statusFor(process_id);
+  const pid = status?.pid;
+  if (pid && pidExists(pid)) {
     // Detached spawn ⇒ the child leads its own process group; kill the group so
     // grandchildren (e.g. a shell's subprocess) die too.
-    try { process.kill(-rec.pid, 'SIGTERM'); }
-    catch { try { process.kill(rec.pid, 'SIGTERM'); } catch {} }
+    try { process.kill(-pid, 'SIGTERM'); }
+    catch { try { process.kill(pid, 'SIGTERM'); } catch {} }
   }
   deleteRecord(process_id);
   notifyProcUpdated(process_id);
