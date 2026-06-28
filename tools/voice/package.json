@@ -1,9 +1,0 @@
-{
-  "name": "voice",
-  "version": "1.0.1",
-  "type": "module",
-  "main": "server.mjs",
-  "scripts": {
-    "start": "node server.mjs"
-  }
-}

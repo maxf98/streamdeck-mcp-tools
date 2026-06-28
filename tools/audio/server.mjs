@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * audio — a zero-dependency stdio MCP server for macOS audio.
+ * audio — a stdio MCP server for macOS audio.
  *
- * Speaks newline-delimited JSON-RPC directly over stdio (the same framing the
- * MCP stdio transport uses), so it needs no `npm install` and no SDK — it just
- * runs on the bundled Node. It exposes the macOS audio system as live MCP
- * resources that push updates the instant anything changes, plus get/set tools:
+ * Built on the official `@modelcontextprotocol/sdk` (McpServer + the stdio
+ * transport), so it's unified with the other tool packs in this repo (bash,
+ * safari, clipboard, …) — same framing, same `npm install`, same registration
+ * API — rather than hand-rolling JSON-RPC over stdio. It exposes the macOS audio
+ * system as live MCP resources that push updates the instant anything changes,
+ * plus get/set tools:
  *
  *   Resources (each pushes notifications/resources/updated on change):
  *     resource://audio/output   output volume/mute  → { level, muted }
@@ -28,12 +30,15 @@
  * output/input volume + mute (device switching requires the Swift helper).
  */
 
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SubscribeRequestSchema, UnsubscribeRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { execFile, spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const PROTOCOL_VERSION = "2025-06-18"; // any SUPPORTED_PROTOCOL_VERSIONS entry
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 // Resource URIs.
@@ -41,20 +46,8 @@ const URI_OUTPUT = "resource://audio/output";
 const URI_INPUT = "resource://audio/input";
 const URI_DEVICES = "resource://audio/devices";
 
-// ── Transport: newline-delimited JSON-RPC over stdio ─────────────────────────
-
-function send(msg) {
-    process.stdout.write(JSON.stringify(msg) + "\n");
-}
-function reply(id, result) {
-    send({ jsonrpc: "2.0", id, result });
-}
-function replyError(id, code, message) {
-    send({ jsonrpc: "2.0", id, error: { code, message } });
-}
-function notify(method, params) {
-    send({ jsonrpc: "2.0", method, params });
-}
+// The SDK owns the JSON-RPC framing now; `server` is wired up at the bottom of
+// the file and `notifyUpdated` pushes resource updates through it.
 
 // ── osascript fallback (when the Swift helper is unavailable) ─────────────────
 
@@ -101,7 +94,10 @@ function resourceContents(uri, data) {
 
 /** Emit notifications/resources/updated for a URI if it's subscribed. */
 function notifyUpdated(uri) {
-    if (subscribed.has(uri)) notify("notifications/resources/updated", { uri });
+    // The SDK only pushes to clients that subscribed at the protocol level, but
+    // we also gate on our own `subscribed` set so the watcher's debounce logic
+    // (and the start/stop-watching lifecycle) stays the single source of truth.
+    if (subscribed.has(uri)) void server.server.sendResourceUpdated({ uri });
 }
 
 function setOutState(level, muted) {
@@ -398,329 +394,210 @@ async function setDefaultDevice(kind, uid) {
     return uid;
 }
 
-// ── JSON-RPC request handling ────────────────────────────────────────────────
+// ── SDK server: resources, tools, subscribe gating, transport ─────────────────
 
-const RESOURCE_DESCRIPTORS = [
-    { uri: URI_OUTPUT, name: "System Output Volume", description: "Default output device volume (0–100) and mute state." },
-    { uri: URI_INPUT, name: "System Input Volume", description: "Default input (microphone) volume (0–100) and mute state." },
-    { uri: URI_DEVICES, name: "Audio Devices", description: "All audio devices and the current default input/output device." },
-];
+// Advertise `resources.subscribe` up front: the high-level `registerResource`
+// only sets `resources.listChanged`, so the subscribe capability (and thus our
+// low-level subscribe/unsubscribe handlers below) must be declared here.
+const server = new McpServer(
+    { name: "audio", version: "3.0.0" },
+    { capabilities: { resources: { subscribe: true } } },
+);
 
-const TOOL_DESCRIPTORS = [
-    {
-        name: "get_volume",
-        description: "Get the macOS system output volume (0–100) and mute state.",
-        inputSchema: { type: "object", properties: {}, additionalProperties: false },
-        outputSchema: {
-            type: "object",
-            properties: { level: { type: "number" }, muted: { type: "boolean" } },
-            required: ["level", "muted"],
-        },
+// Tool return shape helper — mirrors the SDK's expected
+// { structuredContent, content:[{type:'text',text}] }.
+const ok = (structured, text) => ({ structuredContent: structured, content: [{ type: "text", text }] });
+
+// ── Resources ─────────────────────────────────────────────────────────────────
+// list/read via the high-level API; subscribe/unsubscribe via low-level handlers
+// (the high-level API doesn't expose them). The watcher's debounce + start/stop
+// lifecycle is preserved verbatim — only the doorbell + dispatch are re-wired.
+
+server.registerResource(
+    "System Output Volume", URI_OUTPUT,
+    { description: "Default output device volume (0–100) and mute state.", mimeType: "application/json" },
+    async (uri) => {
+        await ensurePrimed();
+        return { contents: resourceContents(uri.href, outState ?? makeVolSnapshot(0, false)) };
     },
-    {
-        name: "set_volume",
-        description: "Set output volume (0–100). Targets the default output device, or a specific device when 'device' (a UID from list_devices) is given. Setting a specific device requires the Core Audio helper, and the device must expose a settable volume (see 'settable' in list_devices).",
-        inputSchema: {
-            type: "object",
-            properties: {
-                level: { type: "number", description: "Volume 0–100." },
-                device: { type: "string", description: "Optional device UID from list_devices; omit for the default output device." },
-            },
-            required: ["level"],
-        },
-        outputSchema: { type: "object", properties: { level: { type: "number" } }, required: ["level"] },
+);
+
+server.registerResource(
+    "System Input Volume", URI_INPUT,
+    { description: "Default input (microphone) volume (0–100) and mute state.", mimeType: "application/json" },
+    async (uri) => {
+        await ensurePrimed();
+        return { contents: resourceContents(uri.href, inState ?? makeVolSnapshot(0, false)) };
     },
-    {
-        name: "set_muted",
-        description: "Mute or unmute output. Targets the default output device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper).",
-        inputSchema: {
-            type: "object",
-            properties: {
-                muted: { type: "boolean", description: "True to mute, false to unmute." },
-                device: { type: "string", description: "Optional device UID from list_devices; omit for the default output device." },
-            },
-            required: ["muted"],
-        },
-        outputSchema: { type: "object", properties: { muted: { type: "boolean" } }, required: ["muted"] },
+);
+
+server.registerResource(
+    "Audio Devices", URI_DEVICES,
+    { description: "All audio devices and the current default input/output device.", mimeType: "application/json" },
+    async (uri) => {
+        await ensurePrimed();
+        return { contents: resourceContents(uri.href, deviceState ?? { output: "", input: "", devices: [] }) };
     },
-    {
-        name: "get_input_volume",
-        description: "Get the macOS system input (microphone) volume (0–100) and mute state.",
-        inputSchema: { type: "object", properties: {}, additionalProperties: false },
-        outputSchema: {
-            type: "object",
-            properties: { level: { type: "number" }, muted: { type: "boolean" } },
-            required: ["level", "muted"],
-        },
-    },
-    {
-        name: "set_input_volume",
-        description: "Set input (microphone) volume (0–100). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper; device must expose a settable volume).",
-        inputSchema: {
-            type: "object",
-            properties: {
-                level: { type: "number", description: "Volume 0–100." },
-                device: { type: "string", description: "Optional device UID from list_devices; omit for the default input device." },
-            },
-            required: ["level"],
-        },
-        outputSchema: { type: "object", properties: { level: { type: "number" } }, required: ["level"] },
-    },
-    {
-        name: "set_input_muted",
-        description: "Mute or unmute input (microphone). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper).",
-        inputSchema: {
-            type: "object",
-            properties: {
-                muted: { type: "boolean", description: "True to mute, false to unmute." },
-                device: { type: "string", description: "Optional device UID from list_devices; omit for the default input device." },
-            },
-            required: ["muted"],
-        },
-        outputSchema: { type: "object", properties: { muted: { type: "boolean" } }, required: ["muted"] },
-    },
-    {
-        name: "list_devices",
-        description: "List all audio devices with each device's current volume/mute (and whether volume is settable), plus the current default input/output device (by UID).",
-        inputSchema: { type: "object", properties: {}, additionalProperties: false },
-        outputSchema: {
-            type: "object",
-            properties: {
-                output: { type: "string", description: "UID of the current default output device." },
-                input: { type: "string", description: "UID of the current default input device." },
-                devices: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            id: { type: "number" },
-                            uid: { type: "string" },
-                            name: { type: "string" },
-                            canInput: { type: "boolean" },
-                            canOutput: { type: "boolean" },
-                            output: {
-                                type: "object",
-                                description: "Output-scope volume/mute (present when canOutput).",
-                                properties: {
-                                    level: { type: "number" },
-                                    muted: { type: "boolean" },
-                                    settable: { type: "boolean", description: "Whether this device's output volume can be set." },
-                                },
-                            },
-                            input: {
-                                type: "object",
-                                description: "Input-scope volume/mute (present when canInput).",
-                                properties: {
-                                    level: { type: "number" },
-                                    muted: { type: "boolean" },
-                                    settable: { type: "boolean", description: "Whether this device's input volume can be set." },
-                                },
-                            },
-                        },
-                        required: ["uid", "name", "canInput", "canOutput"],
-                    },
-                },
-            },
-            required: ["output", "input", "devices"],
-        },
-    },
-    {
-        name: "set_default_output_device",
-        description: "Set the default output device by UID (from list_devices). Requires the Core Audio helper.",
-        inputSchema: {
-            type: "object",
-            properties: { uid: { type: "string", description: "Device UID from list_devices." } },
-            required: ["uid"],
-        },
-        outputSchema: { type: "object", properties: { uid: { type: "string" } }, required: ["uid"] },
-    },
-    {
-        name: "set_default_input_device",
-        description: "Set the default input device by UID (from list_devices). Requires the Core Audio helper.",
-        inputSchema: {
-            type: "object",
-            properties: { uid: { type: "string", description: "Device UID from list_devices." } },
-            required: ["uid"],
-        },
-        outputSchema: { type: "object", properties: { uid: { type: "string" } }, required: ["uid"] },
-    },
-];
+);
 
-async function handle(msg) {
-    const { id, method, params } = msg;
+const RESOURCE_URIS = new Set([URI_OUTPUT, URI_INPUT, URI_DEVICES]);
 
-    // Notifications (no id) — nothing to ack.
-    if (id === undefined || id === null) return; // e.g. notifications/initialized
-
-    switch (method) {
-        case "initialize":
-            reply(id, {
-                protocolVersion: PROTOCOL_VERSION,
-                capabilities: {
-                    resources: { subscribe: true, listChanged: false },
-                    tools: { listChanged: false },
-                },
-                serverInfo: { name: "audio", version: "3.0.0" },
-            });
-            return;
-
-        case "ping":
-            reply(id, {});
-            return;
-
-        case "resources/list":
-            reply(id, {
-                resources: RESOURCE_DESCRIPTORS.map((r) => ({ ...r, mimeType: "application/json" })),
-            });
-            return;
-
-        case "resources/templates/list":
-            reply(id, { resourceTemplates: [] });
-            return;
-
-        case "resources/read": {
-            const uri = params?.uri;
-            await ensurePrimed();
-            if (uri === URI_OUTPUT) {
-                reply(id, { contents: resourceContents(uri, outState ?? makeVolSnapshot(0, false)) });
-            } else if (uri === URI_INPUT) {
-                reply(id, { contents: resourceContents(uri, inState ?? makeVolSnapshot(0, false)) });
-            } else if (uri === URI_DEVICES) {
-                reply(id, { contents: resourceContents(uri, deviceState ?? { output: "", input: "", devices: [] }) });
-            } else {
-                replyError(id, -32602, `Unknown resource: ${uri}`);
-            }
-            return;
-        }
-
-        case "resources/subscribe":
-            if (params?.uri && RESOURCE_DESCRIPTORS.some((r) => r.uri === params.uri)) {
-                subscribed.add(params.uri);
-                void startWatching();
-            }
-            reply(id, {});
-            return;
-
-        case "resources/unsubscribe":
-            if (params?.uri) {
-                subscribed.delete(params.uri);
-                if (subscribed.size === 0) stopWatching();
-            }
-            reply(id, {});
-            return;
-
-        case "tools/list":
-            reply(id, { tools: TOOL_DESCRIPTORS });
-            return;
-
-        case "tools/call":
-            await handleToolCall(id, params);
-            return;
-
-        default:
-            replyError(id, -32601, `Method not found: ${method}`);
-            return;
+// Subscribe gating: start the watcher when a resource is first subscribed, stop
+// it when the last subscriber leaves. `subscribed` stays the single source of
+// truth for both the start/stop lifecycle and `notifyUpdated`'s push gating.
+server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+    const uri = req.params.uri;
+    if (RESOURCE_URIS.has(uri)) {
+        subscribed.add(uri);
+        void startWatching();
     }
-}
-
-async function handleToolCall(id, params) {
-    const name = params?.name;
-    const args = params?.arguments ?? {};
-    const ok = (structured, text) =>
-        reply(id, { structuredContent: structured, content: [{ type: "text", text }] });
-
-    switch (name) {
-        case "get_volume": {
-            await ensurePrimed();
-            const s = outState ?? makeVolSnapshot(0, false);
-            return ok({ level: s.level, muted: s.muted }, s.muted ? "Output muted." : `Output volume ${s.level}%.`);
-        }
-        case "get_input_volume": {
-            await ensurePrimed();
-            const s = inState ?? makeVolSnapshot(0, false);
-            return ok({ level: s.level, muted: s.muted }, s.muted ? "Input muted." : `Input volume ${s.level}%.`);
-        }
-        case "set_volume":
-        case "set_input_volume": {
-            const channel = name === "set_input_volume" ? "input" : "output";
-            const level = Number(args.level);
-            if (!Number.isFinite(level)) return replyError(id, -32602, `${name} requires a numeric 'level'.`);
-            const device = args.device ? String(args.device) : undefined;
-            const bad = device && await validateDevice(channel, device, /* needsSettable */ true);
-            if (bad) return replyError(id, -32602, bad);
-            try {
-                const applied = await setVolume(channel, level, device);
-                return ok({ level: applied }, `${deviceLabel(channel, device)} volume set to ${applied}%.`);
-            } catch (err) {
-                return replyError(id, -32603, String(err?.message ?? err));
-            }
-        }
-        case "set_muted":
-        case "set_input_muted": {
-            const channel = name === "set_input_muted" ? "input" : "output";
-            const muted = args.muted === true || args.muted === "true";
-            const device = args.device ? String(args.device) : undefined;
-            const bad = device && await validateDevice(channel, device, /* needsSettable */ false);
-            if (bad) return replyError(id, -32602, bad);
-            try {
-                await setMuted(channel, muted, device);
-                const lbl = deviceLabel(channel, device);
-                return ok({ muted }, muted ? `${lbl} muted.` : `${lbl} unmuted.`);
-            } catch (err) {
-                return replyError(id, -32603, String(err?.message ?? err));
-            }
-        }
-        case "list_devices": {
-            await ensurePrimed();
-            const d = deviceState ?? { output: "", input: "", devices: [] };
-            return ok(
-                { output: d.output, input: d.input, devices: d.devices },
-                `${d.devices.length} audio device(s).`,
-            );
-        }
-        case "set_default_output_device": {
-            const uid = String(args.uid ?? "");
-            if (!uid) return replyError(id, -32602, "set_default_output_device requires a 'uid'.");
-            try {
-                await setDefaultDevice("output", uid);
-                return ok({ uid }, `Default output set to ${uid}.`);
-            } catch (err) {
-                return replyError(id, -32603, String(err?.message ?? err));
-            }
-        }
-        case "set_default_input_device": {
-            const uid = String(args.uid ?? "");
-            if (!uid) return replyError(id, -32602, "set_default_input_device requires a 'uid'.");
-            try {
-                await setDefaultDevice("input", uid);
-                return ok({ uid }, `Default input set to ${uid}.`);
-            } catch (err) {
-                return replyError(id, -32603, String(err?.message ?? err));
-            }
-        }
-        default:
-            return replyError(id, -32602, `Unknown tool: ${name}`);
-    }
-}
-
-// ── Stdin loop ───────────────────────────────────────────────────────────────
-
-let buffer = "";
-process.stdin.setEncoding("utf8");
-process.stdin.on("data", (chunk) => {
-    buffer += chunk;
-    let idx;
-    while ((idx = buffer.indexOf("\n")) !== -1) {
-        const line = buffer.slice(0, idx).trim();
-        buffer = buffer.slice(idx + 1);
-        if (!line) continue;
-        let msg;
-        try { msg = JSON.parse(line); } catch { continue; }
-        Promise.resolve(handle(msg)).catch((err) => {
-            if (msg && msg.id !== undefined && msg.id !== null) {
-                replyError(msg.id, -32603, `Internal error: ${err?.message ?? err}`);
-            }
-        });
-    }
+    return {};
 });
-process.stdin.on("end", () => { stopWatching(); process.exit(0); });
+
+server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+    const uri = req.params.uri;
+    if (uri) {
+        subscribed.delete(uri);
+        if (subscribed.size === 0) stopWatching();
+    }
+    return {};
+});
+
+// ── Tools ─────────────────────────────────────────────────────────────────────
+
+server.registerTool("get_volume", {
+    description: "Get the macOS system output volume (0–100) and mute state.",
+    inputSchema: {},
+    outputSchema: { level: z.number(), muted: z.boolean() },
+}, async () => {
+    await ensurePrimed();
+    const s = outState ?? makeVolSnapshot(0, false);
+    return ok({ level: s.level, muted: s.muted }, s.muted ? "Output muted." : `Output volume ${s.level}%.`);
+});
+
+server.registerTool("get_input_volume", {
+    description: "Get the macOS system input (microphone) volume (0–100) and mute state.",
+    inputSchema: {},
+    outputSchema: { level: z.number(), muted: z.boolean() },
+}, async () => {
+    await ensurePrimed();
+    const s = inState ?? makeVolSnapshot(0, false);
+    return ok({ level: s.level, muted: s.muted }, s.muted ? "Input muted." : `Input volume ${s.level}%.`);
+});
+
+for (const name of ["set_volume", "set_input_volume"]) {
+    const channel = name === "set_input_volume" ? "input" : "output";
+    const dflt = channel === "input" ? "input" : "output";
+    server.registerTool(name, {
+        description: name === "set_input_volume"
+            ? "Set input (microphone) volume (0–100). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper; device must expose a settable volume)."
+            : "Set output volume (0–100). Targets the default output device, or a specific device when 'device' (a UID from list_devices) is given. Setting a specific device requires the Core Audio helper, and the device must expose a settable volume (see 'settable' in list_devices).",
+        inputSchema: {
+            level: z.number().describe("Volume 0–100."),
+            device: z.string().optional().describe(`Optional device UID from list_devices; omit for the default ${dflt} device.`),
+        },
+        outputSchema: { level: z.number() },
+    }, async (args) => {
+        const level = Number(args.level);
+        if (!Number.isFinite(level)) throw new Error(`${name} requires a numeric 'level'.`);
+        const device = args.device ? String(args.device) : undefined;
+        const bad = device && await validateDevice(channel, device, /* needsSettable */ true);
+        if (bad) throw new Error(bad);
+        const applied = await setVolume(channel, level, device);
+        return ok({ level: applied }, `${deviceLabel(channel, device)} volume set to ${applied}%.`);
+    });
+}
+
+for (const name of ["set_muted", "set_input_muted"]) {
+    const channel = name === "set_input_muted" ? "input" : "output";
+    const dflt = channel === "input" ? "input" : "output";
+    server.registerTool(name, {
+        description: name === "set_input_muted"
+            ? "Mute or unmute input (microphone). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper)."
+            : "Mute or unmute output. Targets the default output device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper).",
+        inputSchema: {
+            muted: z.boolean().describe("True to mute, false to unmute."),
+            device: z.string().optional().describe(`Optional device UID from list_devices; omit for the default ${dflt} device.`),
+        },
+        outputSchema: { muted: z.boolean() },
+    }, async (args) => {
+        const muted = args.muted === true || args.muted === "true";
+        const device = args.device ? String(args.device) : undefined;
+        const bad = device && await validateDevice(channel, device, /* needsSettable */ false);
+        if (bad) throw new Error(bad);
+        await setMuted(channel, muted, device);
+        const lbl = deviceLabel(channel, device);
+        return ok({ muted }, muted ? `${lbl} muted.` : `${lbl} unmuted.`);
+    });
+}
+
+const deviceScope = z.object({
+    level: z.number(),
+    muted: z.boolean(),
+    settable: z.boolean().describe("Whether this device's volume can be set.").optional(),
+}).optional();
+
+server.registerTool("list_devices", {
+    description: "List all audio devices with each device's current volume/mute (and whether volume is settable), plus the current default input/output device (by UID).",
+    inputSchema: {},
+    outputSchema: {
+        output: z.string().describe("UID of the current default output device."),
+        input: z.string().describe("UID of the current default input device."),
+        devices: z.array(z.object({
+            id: z.number().optional(),
+            uid: z.string(),
+            name: z.string(),
+            canInput: z.boolean(),
+            canOutput: z.boolean(),
+            output: deviceScope.describe("Output-scope volume/mute (present when canOutput)."),
+            input: deviceScope.describe("Input-scope volume/mute (present when canInput)."),
+        })),
+    },
+}, async () => {
+    await ensurePrimed();
+    const d = deviceState ?? { output: "", input: "", devices: [] };
+    return ok(
+        { output: d.output, input: d.input, devices: d.devices },
+        `${d.devices.length} audio device(s).`,
+    );
+});
+
+server.registerTool("set_default_output_device", {
+    description: "Set the default output device by UID (from list_devices). Requires the Core Audio helper.",
+    inputSchema: { uid: z.string().describe("Device UID from list_devices.") },
+    outputSchema: { uid: z.string() },
+}, async (args) => {
+    const uid = String(args.uid ?? "");
+    if (!uid) throw new Error("set_default_output_device requires a 'uid'.");
+    await setDefaultDevice("output", uid);
+    return ok({ uid }, `Default output set to ${uid}.`);
+});
+
+server.registerTool("set_default_input_device", {
+    description: "Set the default input device by UID (from list_devices). Requires the Core Audio helper.",
+    inputSchema: { uid: z.string().describe("Device UID from list_devices.") },
+    outputSchema: { uid: z.string() },
+}, async (args) => {
+    const uid = String(args.uid ?? "");
+    if (!uid) throw new Error("set_default_input_device requires a 'uid'.");
+    await setDefaultDevice("input", uid);
+    return ok({ uid }, `Default input set to ${uid}.`);
+});
+
+// ── Start + teardown ─────────────────────────────────────────────────────────
+// Preserve the old graceful shutdown: when stdin ends (the gateway disconnects)
+// stop the watcher so the Swift child + timers don't leak, then exit — exactly
+// what the hand-rolled `process.stdin.on("end")` did. We chain off the server's
+// `onclose` too (the SDK invokes it when the stdio transport closes) so teardown
+// runs no matter which fires first; `stopWatching()` is idempotent.
+function shutdown() {
+    stopWatching();
+    process.exit(0);
+}
+
+process.stdin.on("end", shutdown);
+
+await server.connect(new StdioServerTransport());
+
+const sdkOnClose = server.server.onclose;
+server.server.onclose = () => { stopWatching(); sdkOnClose?.(); };
