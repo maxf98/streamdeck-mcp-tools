@@ -269,30 +269,43 @@ server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
 
 server.registerTool('start_process', {
   description:
-    'Start a long-running process and return a handle (process_id). The command runs via bash -c, detached so it ' +
-    'outlives this server. Its live status is exposed at resource://bash/process/{process_id} — a Stream Deck face ' +
-    'can bind to it. Persist the returned process_id and pass it to stop_process. Use run_command for one-shot work.',
+    'Start a long-running process under a handle (process_id). Pass your OWN stable id (e.g. a button id) so a face ' +
+    'can bind to resource://bash/process/{id} at author time and you can toggle it later; omit id to get a random one. ' +
+    'Idempotent: if a process for that id is already running, this is a no-op and returns it. The command runs detached ' +
+    'so it outlives this server. Use run_command for one-shot work.',
   inputSchema: {
     command: z.string().describe('Shell command to run, e.g. "python3 -m http.server 8000".'),
+    id: z.string().optional().describe('Stable handle to use (e.g. the button id). Omit for a random one.'),
     cwd: z.string().default('').describe('Working directory. Supports ~ and $ENV_VAR. Defaults to $HOME.'),
   },
-  outputSchema: z.object({ process_id: z.string(), pid: z.number().nullable(), running: z.boolean() }),
-}, async ({ command, cwd }) => {
-  const process_id = randomUUID();
+  outputSchema: z.object({ process_id: z.string(), pid: z.number().nullable(), running: z.boolean(), alreadyRunning: z.boolean() }),
+}, async ({ command, id, cwd }) => {
+  const process_id = id || randomUUID();
+
+  // Idempotent: if this handle already has a live process, don't start another.
+  const cur = statusFor(process_id);
+  if (cur && cur.running) {
+    const result = { process_id, pid: cur.pid, running: true, alreadyRunning: true };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
   const resolved = resolveCwd(cwd) ?? os.homedir();
-  const child = spawn('bash', ['-c', command], { cwd: resolved, detached: true, stdio: 'ignore' });
+  // `exec` so bash REPLACES itself with the command: the pid we record is the
+  // actual leaf process (e.g. python), not a bash wrapper whose death would
+  // diverge from a reparented grandchild. Detached + unref so it outlives us.
+  const child = spawn('bash', ['-c', `exec ${command}`], { cwd: resolved, detached: true, stdio: 'ignore' });
   child.unref();
   const rec = { process_id, pid: child.pid ?? null, command, startedAt: Date.now(), running: true };
   writeRecord(rec);
   // Opportunistic instant-push if we're still resident when it dies; statusFor()
   // recomputes truth from the OS regardless, so this is latency-only.
   child.on('exit', () => {
-    const cur = readRecord(process_id);
-    if (cur && cur.pid === child.pid) { cur.running = false; cur.pid = null; writeRecord(cur); }
+    const r = readRecord(process_id);
+    if (r && r.pid === child.pid) { r.running = false; r.pid = null; writeRecord(r); }
     notifyProcUpdated(process_id);
   });
   notifyProcUpdated(process_id);
-  const result = { process_id, pid: rec.pid, running: true };
+  const result = { process_id, pid: rec.pid, running: true, alreadyRunning: false };
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
