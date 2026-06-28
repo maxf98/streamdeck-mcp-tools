@@ -1,11 +1,11 @@
 {
     "id": "bash",
     "name": "Bash / Shell",
-    "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks.",
-    "version": "1.1.0",
+    "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
+    "version": "1.2.0",
     "command": "node",
     "args": ["server.mjs"],
     "install": "npm install",
     "platform": ["darwin"],
-    "tags": ["bash", "shell", "terminal", "macos", "developer", "scripts"]
+    "tags": ["bash", "shell", "terminal", "macos", "developer", "scripts", "process", "watch"]
 }

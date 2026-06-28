@@ -1,15 +1,22 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFile, unlink } from 'node:fs/promises';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import os from 'node:os';
 import nodePath from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 const execFileAsync = promisify(execFile);
-const server = new McpServer({ name: 'BashMCP', version: '1.0.0' });
+// Advertise resource subscription — the start/stop/watch process tools below
+// expose each tracked process as a subscribable resource.
+const server = new McpServer(
+  { name: 'BashMCP', version: '1.1.0' },
+  { capabilities: { resources: { subscribe: true }, tools: {} } },
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -156,6 +163,169 @@ server.registerTool('get_env', {
     if (process.env[k] !== undefined) result[k] = process.env[k];
   }
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+});
+
+// ── Long-running processes: start, stop & OBSERVE by handle ────────────────────
+//
+// run_command is fire-and-forget; these track a process across calls. The design
+// follows MCP's stateless-core direction: state is addressed by an EXPLICIT HANDLE
+// (a process_id minted by start_process) and PERSISTED TO DISK, not held only in
+// memory — so liveness is answered correctly even after this server is torn down
+// and respawned (which the host does as buttons come and go). The resident-process
+// `child.on('exit')` event is only an opportunistic instant-push optimization;
+// truth is always recomputed from the OS on read.
+//
+//   start_process { command, cwd? } → { process_id, pid, running }
+//   stop_process  { process_id }    → { process_id, running }
+//   list_processes {}               → { processes: [...] }
+//   resource://bash/process/{process_id} (subscribable) → { process_id, running,
+//                                          pid, command, startedAt }
+
+const PROC_DIR = nodePath.join(process.env.STREAMDECK_MCP_DIR ?? nodePath.join(os.homedir(), '.streamdeck-mcp'), 'bash-processes');
+mkdirSync(PROC_DIR, { recursive: true });
+
+const procPath = (id) => nodePath.join(PROC_DIR, `${id}.json`);
+function readRecord(id) {
+  try { return JSON.parse(readFileSync(procPath(id), 'utf8')); } catch { return null; }
+}
+function writeRecord(rec) { writeFileSync(procPath(rec.process_id), JSON.stringify(rec)); }
+function deleteRecord(id) { try { unlinkSync(procPath(id)); } catch {} }
+function allRecords() {
+  let names = [];
+  try { names = readdirSync(PROC_DIR).filter((n) => n.endsWith('.json')); } catch {}
+  return names.map((n) => readRecord(n.slice(0, -5))).filter(Boolean);
+}
+
+// process.kill(pid, 0) tests existence without signalling: ESRCH = gone, EPERM =
+// alive but unsignalable. PIDs are recycled, so we also verify identity against
+// the live command line before claiming a process is still ours.
+function pidExists(pid) {
+  if (!pid) return false;
+  try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; }
+}
+function identityMatches(pid, command) {
+  try {
+    const out = execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' }).trim();
+    if (!out) return false;
+    const head = command.trim().split(/\s+/)[0];
+    return head.length > 0 && out.includes(head);
+  } catch {
+    return true; // can't determine → don't report a false death
+  }
+}
+
+// Authoritative status from disk + the OS right now; reconciles the record when
+// the pid has died. null when there's no record for this handle.
+function statusFor(id) {
+  const rec = readRecord(id);
+  if (!rec) return null;
+  const alive = pidExists(rec.pid) && identityMatches(rec.pid, rec.command);
+  if (rec.running !== alive) {
+    rec.running = alive;
+    if (!alive) rec.pid = null;
+    writeRecord(rec);
+  }
+  return { process_id: rec.process_id, running: rec.running, pid: rec.pid ?? null, command: rec.command, startedAt: rec.startedAt ?? null };
+}
+
+const PROC_URI_PREFIX = 'resource://bash/process/';
+const procUri = (id) => `${PROC_URI_PREFIX}${id}`;
+const idFromUri = (uri) => { const m = new RegExp(`^${PROC_URI_PREFIX}(.+)$`).exec(uri); return m ? m[1] : null; };
+
+const subscribedProcs = new Set();
+function notifyProcUpdated(id) {
+  const uri = procUri(id);
+  if (subscribedProcs.has(uri)) server.server.sendResourceUpdated({ uri }).catch(() => {});
+}
+
+server.registerResource(
+  'process',
+  new ResourceTemplate(`${PROC_URI_PREFIX}{process_id}`, {
+    list: async () => ({
+      resources: allRecords().map((rec) => ({
+        uri: procUri(rec.process_id),
+        name: `Process ${rec.process_id}`,
+        description: `Live status of: ${rec.command}`,
+        mimeType: 'application/json',
+      })),
+    }),
+  }),
+  { description: 'Live { running, pid, command } status of a process started by start_process, by its handle.' },
+  async (uri, variables) => {
+    const id = variables.process_id;
+    const status = statusFor(id) ?? { process_id: id, running: false, pid: null, command: null, startedAt: null };
+    return { contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(status) }] };
+  },
+);
+
+server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+  if (req.params?.uri && idFromUri(req.params.uri)) subscribedProcs.add(req.params.uri);
+  return {};
+});
+server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+  if (req.params?.uri) subscribedProcs.delete(req.params.uri);
+  return {};
+});
+
+server.registerTool('start_process', {
+  description:
+    'Start a long-running process and return a handle (process_id). The command runs via bash -c, detached so it ' +
+    'outlives this server. Its live status is exposed at resource://bash/process/{process_id} — a Stream Deck face ' +
+    'can bind to it. Persist the returned process_id and pass it to stop_process. Use run_command for one-shot work.',
+  inputSchema: {
+    command: z.string().describe('Shell command to run, e.g. "python3 -m http.server 8000".'),
+    cwd: z.string().default('').describe('Working directory. Supports ~ and $ENV_VAR. Defaults to $HOME.'),
+  },
+  outputSchema: z.object({ process_id: z.string(), pid: z.number().nullable(), running: z.boolean() }),
+}, async ({ command, cwd }) => {
+  const process_id = randomUUID();
+  const resolved = resolveCwd(cwd) ?? os.homedir();
+  const child = spawn('bash', ['-c', command], { cwd: resolved, detached: true, stdio: 'ignore' });
+  child.unref();
+  const rec = { process_id, pid: child.pid ?? null, command, startedAt: Date.now(), running: true };
+  writeRecord(rec);
+  // Opportunistic instant-push if we're still resident when it dies; statusFor()
+  // recomputes truth from the OS regardless, so this is latency-only.
+  child.on('exit', () => {
+    const cur = readRecord(process_id);
+    if (cur && cur.pid === child.pid) { cur.running = false; cur.pid = null; writeRecord(cur); }
+    notifyProcUpdated(process_id);
+  });
+  notifyProcUpdated(process_id);
+  const result = { process_id, pid: rec.pid, running: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+});
+
+server.registerTool('stop_process', {
+  description: 'Stop a process started by start_process, by its process_id handle. Clears its persisted state.',
+  inputSchema: { process_id: z.string().describe('The handle returned by start_process.') },
+  outputSchema: z.object({ process_id: z.string(), running: z.boolean() }),
+}, async ({ process_id }) => {
+  const rec = readRecord(process_id);
+  if (rec && rec.pid && pidExists(rec.pid)) {
+    // Detached spawn ⇒ the child leads its own process group; kill the group so
+    // grandchildren (e.g. a shell's subprocess) die too.
+    try { process.kill(-rec.pid, 'SIGTERM'); }
+    catch { try { process.kill(rec.pid, 'SIGTERM'); } catch {} }
+  }
+  deleteRecord(process_id);
+  notifyProcUpdated(process_id);
+  const result = { process_id, running: false };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+});
+
+server.registerTool('list_processes', {
+  description: 'List all processes started by start_process with their current live status.',
+  inputSchema: {},
+  outputSchema: z.object({
+    processes: z.array(z.object({
+      process_id: z.string(), running: z.boolean(), pid: z.number().nullable(),
+      command: z.string().nullable(), startedAt: z.number().nullable(),
+    })),
+  }),
+}, async () => {
+  const processes = allRecords().map((rec) => statusFor(rec.process_id)).filter(Boolean);
+  return { content: [{ type: 'text', text: JSON.stringify({ processes }) }], structuredContent: { processes } };
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
