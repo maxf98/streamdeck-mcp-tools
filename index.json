@@ -221,26 +221,6 @@
             "path": "tools/screenshot"
         },
         {
-            "id": "voice",
-            "name": "Voice Recording",
-            "description": "Record microphone audio for transcription. Ships a Stream Deck key face and an on-screen recorder popup as MCP App UI resources; the popup captures the mic in-browser and saves a WebM file whose path you can hand to a transcription tool (e.g. openai__transcribe_file).",
-            "version": "1.0.1",
-            "platform": [
-                "darwin"
-            ],
-            "tags": [
-                "voice",
-                "recording",
-                "microphone",
-                "audio",
-                "transcription",
-                "dictation",
-                "ui",
-                "popup"
-            ],
-            "path": "tools/voice"
-        },
-        {
             "id": "vscode",
             "name": "VS Code",
             "description": "Control VS Code windows \u2014 toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
