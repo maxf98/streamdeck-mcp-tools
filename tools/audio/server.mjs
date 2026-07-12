@@ -46,6 +46,18 @@ const URI_OUTPUT = "resource://audio/output";
 const URI_INPUT = "resource://audio/input";
 const URI_DEVICES = "resource://audio/devices";
 
+// Stream Deck surface resources (io.streamdeck/surfaces extension). These are
+// ui:// MCP App resources a surface-aware host renders on hardware; a plain chat
+// client ignores them. The dial + popup both bind resource://audio/output and
+// drive it through the tools below.
+const URI_DIAL = "ui://audio/dial";
+const URI_POPUP = "ui://audio/popup";
+const SURFACE_NS = "io.streamdeck/surfaces";
+const APP_MIME = "text/html;profile=mcp-app";
+
+// How many volume points one dial tick moves.
+const TICK_STEP = 4;
+
 // The SDK owns the JSON-RPC framing now; `server` is wired up at the bottom of
 // the file and `notifyUpdated` pushes resource updates through it.
 
@@ -440,6 +452,117 @@ server.registerResource(
     },
 );
 
+// ── Stream Deck surfaces (io.streamdeck/surfaces) ───────────────────────────
+// A dial (encoder) and a popup, both bound to resource://audio/output. A
+// surface-aware host renders these on hardware; a plain MCP client ignores the
+// `_meta`. The face JSX is a pure function of the bound resource's data
+// ({ level, muted, label }); the popup drives the tools over window.mcp.
+
+const DIAL_JSX = `
+function Face({ data }) {
+  var level = (data && typeof data.level === 'number') ? data.level : 0;
+  var muted = !!(data && data.muted);
+  var pct = Math.max(0, Math.min(100, level));
+  return (
+    <div style={{
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 8,
+      background: '#161616', color: '#fff',
+      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+    }}>
+      <div style={{ fontSize: 20 }}>{muted ? '🔇' : pct > 50 ? '🔊' : pct > 0 ? '🔉' : '🔈'}</div>
+      <div style={{ width: '78%', height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>
+        <div style={{ width: pct + '%', height: '100%', background: muted ? '#5a5a5e' : '#3b9bff' }} />
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: muted ? '#8a8a8e' : '#fff' }}>
+        {muted ? 'Muted' : pct + '%'}
+      </div>
+    </div>
+  );
+}
+`.trim();
+
+const POPUP_JSX = `
+function Popup({ data, submitPopup }) {
+  const [level, setLevel] = React.useState((data && data.level) || 0);
+  const [muted, setMuted] = React.useState(!!(data && data.muted));
+
+  // Keep in sync with live state pushed via the bound resource.
+  React.useEffect(() => {
+    let off = function () {};
+    try {
+      off = window.sd.resource.subscribe('resource://audio/output', function (s) {
+        if (s && typeof s.level === 'number') setLevel(s.level);
+        if (s) setMuted(!!s.muted);
+      });
+    } catch (e) {}
+    return off;
+  }, []);
+
+  const apply = React.useCallback((next) => {
+    setLevel(next);
+    window.mcp.callTool('audio', 'set_volume', { level: next }).catch(function () {});
+  }, []);
+
+  const toggle = React.useCallback(() => {
+    const next = !muted;
+    setMuted(next);
+    window.mcp.callTool('audio', 'set_muted', { muted: next }).catch(function () {});
+  }, [muted]);
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', color: '#fff', minWidth: 260,
+    }}>
+      <button onClick={toggle} style={{
+        border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer',
+      }}>{muted ? '🔇' : '🔊'}</button>
+      <input type="range" min="0" max="100" value={level} onChange={function (e) { apply(Number(e.target.value)); }}
+        style={{ flex: 1 }} />
+      <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 14, minWidth: 40, textAlign: 'right' }}>
+        {muted ? 'Muted' : level + '%'}
+      </span>
+    </div>
+  );
+}
+`.trim();
+
+// One resource registration = jsx + surface _meta on BOTH the read envelope and
+// the list descriptor (so a host can classify the surface from resources/list
+// alone, then read the JSX on demand). Mirrors the in-app voice built-in.
+function surfaceEnvelope(jsx, meta) {
+    return JSON.stringify({ jsx, _meta: meta });
+}
+
+const DIAL_META = {
+    [SURFACE_NS]: {
+        encoder: {
+            resourceUri: URI_DIAL,
+            mode: "persistent",
+            bind: URI_OUTPUT,
+            triggers: {
+                rotate:    { tool: "audio__nudge_volume" },
+                dialPress: { tool: "audio__toggle_mute" },
+                touchTap:  { tool: "audio__toggle_mute" },
+            },
+        },
+    },
+};
+const POPUP_META = { [SURFACE_NS]: { popup: { resourceUri: URI_POPUP, mode: "on-demand" } } };
+
+server.registerResource(
+    "Volume Dial", URI_DIAL,
+    { description: "A Stream Deck dial for output volume: rotate to adjust, press to mute.", mimeType: APP_MIME, _meta: DIAL_META },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: APP_MIME, text: surfaceEnvelope(DIAL_JSX, DIAL_META) }] }),
+);
+
+server.registerResource(
+    "Volume Popup", URI_POPUP,
+    { description: "A volume slider popup for the default output device.", mimeType: APP_MIME, _meta: POPUP_META },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: APP_MIME, text: surfaceEnvelope(POPUP_JSX, POPUP_META) }] }),
+);
+
 const RESOURCE_URIS = new Set([URI_OUTPUT, URI_INPUT, URI_DEVICES]);
 
 // Subscribe gating: start the watcher when a resource is first subscribed, stop
@@ -530,6 +653,41 @@ for (const name of ["set_muted", "set_input_muted"]) {
         return ok({ muted }, muted ? `${lbl} muted.` : `${lbl} unmuted.`);
     });
 }
+
+// ── Dial-friendly tools ─────────────────────────────────────────────────────
+// A Stream Deck dial emits a signed `ticks` delta per detent, not an absolute
+// level — so these translate the hardware interaction into an absolute set_volume
+// / mute-flip. They are what the io.streamdeck/surfaces dial triggers point at
+// (rotate → nudge_volume, dialPress → toggle_mute), and are handy on their own.
+
+server.registerTool("nudge_volume", {
+    description: "Adjust output volume by a relative amount — for a Stream Deck dial. Applies `ticks` × step "
+        + "to the current default output volume (positive = louder). Returns the new level.",
+    inputSchema: {
+        ticks: z.number().describe("Signed number of dial detents (e.g. +1, -3). Multiplied by a fixed step."),
+        pressed: z.boolean().optional().describe("Whether the dial was held while rotating (ignored)."),
+    },
+    outputSchema: { level: z.number() },
+}, async (args) => {
+    await ensurePrimed();
+    const ticks = Number(args.ticks);
+    if (!Number.isFinite(ticks)) throw new Error("nudge_volume requires a numeric 'ticks'.");
+    const current = (outState ?? makeVolSnapshot(0, false)).level;
+    const applied = await setVolume("output", current + ticks * TICK_STEP);
+    return ok({ level: applied }, `Output volume ${applied}%.`);
+});
+
+server.registerTool("toggle_mute", {
+    description: "Toggle output mute on/off — for a Stream Deck dial press or key. Flips the current default "
+        + "output mute state. Returns the new mute state.",
+    inputSchema: {},
+    outputSchema: { muted: z.boolean() },
+}, async () => {
+    await ensurePrimed();
+    const muted = !((outState ?? makeVolSnapshot(0, false)).muted);
+    await setMuted("output", muted);
+    return ok({ muted }, muted ? "Output muted." : "Output unmuted.");
+});
 
 const deviceScope = z.object({
     level: z.number(),
