@@ -1,6 +1,6 @@
 # Stream Deck MCP Tool Packs
 
-This repository is the official catalog of tool packs for the [Stream Deck MCP plugin](https://github.com/nicco-hagedorn/StreamDeckMCPButtons). Tool packs are local MCP servers that run as subprocesses inside the plugin's gateway, exposing tools that Stream Deck buttons can call at press time.
+This repository is the official catalog of tool packs for [Stream Deck MCP Studio](https://github.com/maxf98/streamdeck-mcp-studio). Tool packs are local MCP servers that run as subprocesses inside the Studio's gateway, exposing tools that Stream Deck buttons can call at press time.
 
 ---
 
@@ -133,6 +133,41 @@ All packs need `@modelcontextprotocol/sdk` and `zod`. Add other dependencies as 
 
 ---
 
+## Local development (no push loop)
+
+Normally the Studio downloads packs from this repo, so iterating would mean
+committing + pushing on every change. To develop against a **local checkout**
+instead, point the Studio at this repo's `tools/` directory.
+
+If this repo sits next to `streamdeck-mcp-studio` (the default layout), just use the
+convenience script from the studio repo — it resolves the sibling `tools/` dir for you:
+
+```bash
+cd streamdeck-mcp-studio
+npm run dev:local
+```
+
+Or set the path explicitly (any layout):
+
+```bash
+STREAMDECK_MCP_LOCAL_PACKS=/absolute/path/to/streamdeck-mcp-tools/tools npm run dev
+```
+
+With this set, the Studio:
+
+- Loads every pack under `tools/` straight from disk (**shadowing** any downloaded
+  copy of the same id — local wins).
+- Runs a pack's `install` step **lazily on first start**, only for packs actually
+  used, and only if its `node_modules/` is missing (a fresh checkout is gitignored).
+  Once installed it's skipped on later launches.
+- **Live-reloads** a pack when you edit its files — no rebuild, no restart, no push.
+- Excludes local packs from the update check, so a catalog version bump never
+  offers to overwrite your in-repo edits.
+
+Unset the variable to return to the normal download-from-catalog behavior.
+
+---
+
 ## What makes a good tool pack?
 
 **Good candidates:**
@@ -144,7 +179,7 @@ All packs need `@modelcontextprotocol/sdk` and `zod`. Add other dependencies as 
 
 **Not a good fit:**
 - Packs that require Docker, Python environments, or Homebrew to function
-- Packs that are pure API wrappers for remote services — those belong in the [registry](https://github.com/nicco-hagedorn/StreamDeckMCPButtons/tree/main/registry-api) as remote streamable-http servers
+- Packs that are pure API wrappers for remote services — those belong in the registry as remote streamable-http servers
 - Packs that take more than a few seconds to respond (Stream Deck buttons need snappy feedback)
 - Packs with broad system access that aren't clearly scoped (prefer `launcher` over a generic `system` pack)
 
