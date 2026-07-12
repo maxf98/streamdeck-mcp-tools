@@ -41,19 +41,18 @@ function Face({ data }) {
   const activeIndex = (data && typeof data.active_index === "number") ? data.active_index : 0;
 
   // The preview cursor: transient, in-component. Seeded to the frontmost app; a rotate
-  // moves it without switching. Re-seed to the active app whenever the frontmost
-  // changes underneath us (someone switched apps another way) AND we're not mid-preview.
+  // moves it without switching. The frontmost app is live, server-owned data: whenever
+  // it changes (the user switched apps by any means), the dial always snaps back to it,
+  // dropping any uncommitted preview — the face must never show a stale foreground app.
   const [preview, setPreview] = React.useState(activeIndex);
-  const touched = React.useRef(false);
   React.useEffect(() => {
     Face.__setPreview = setPreview;
-    Face.__touched = touched;
     Face.__len = apps.length;
     Face.__preview = preview;
     Face.__apps = apps;
   });
   React.useEffect(() => {
-    if (!touched.current) setPreview(activeIndex);
+    setPreview(activeIndex);
   }, [activeIndex]);
 
   const cur = at(apps, preview);
@@ -76,17 +75,15 @@ function Face({ data }) {
 Face.onDialRotate = function (delta) {
   const n = Face.__len || 0;
   if (!n || !Face.__setPreview) return;
-  Face.__touched.current = true;
   Face.__setPreview(function (p) { return (((p + (delta || 0)) % n) + n) % n; });
 };
 
-// press / tap → commit: activate the previewed app, then release the cursor so it
-// re-tracks the (now updated) frontmost.
+// press / tap → commit: activate the previewed app. The frontmost change that follows
+// re-seeds the cursor automatically (see the activeIndex effect above).
 function commit(sd) {
   const apps = Face.__apps || [];
   const target = apps[Face.__preview];
   if (!target || !sd) return;
-  if (Face.__touched) Face.__touched.current = false;
   return sd.callTool("window_management", "activate_application", { application: target.name });
 }
 Face.onDialPress = function (_p, sd) { return commit(sd); };
