@@ -1,11 +1,11 @@
 {
   "id": "window_management",
   "name": "Window Management",
-  "description": "Move, resize and snap windows across screens. Get frontmost app, list open windows, snap to halves/quarters, and manage multiple displays.",
-  "version": "1.0.0",
+  "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Also ships an app-switcher across three Stream Deck surfaces — a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid — as live MCP App UI resources with in-component handlers.",
+  "version": "2.0.0",
   "command": "node",
   "args": ["server.js"],
   "install": "npm install",
   "platform": ["darwin"],
-  "tags": ["windows", "resize", "move", "screens", "layout", "macos"]
+  "tags": ["windows", "resize", "move", "screens", "layout", "macos", "apps", "switcher", "key", "dial", "popup"]
 }

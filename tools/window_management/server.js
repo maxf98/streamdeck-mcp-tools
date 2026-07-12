@@ -1,14 +1,29 @@
 #!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { run } from '@jxa/run';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { homedir } from 'os';
 import plist from 'plist';
 import * as z from 'zod/v4';
 
+const HERE = dirname(fileURLToPath(import.meta.url));
 const SPACES_PLIST = join(homedir(), 'Library/Preferences/com.apple.spaces.plist');
+
+// Stream Deck surfaces (io.streamdeck/surfaces extension). The app-switcher key,
+// dial and popup ship as ui:// MCP-App resources whose _meta binds each to a live
+// app-list resource. The key/dial declare `handles` (in-component handlers), so the
+// host injects the hardware event into the live face — its Face.onKeyDown/onDialRotate
+// runs and calls a tool directly. No preview/commit "controller" tools: the dial's
+// preview cursor lives in the view's React state; committing calls activate_application.
+const SURFACE_NS = 'io.streamdeck/surfaces';
+const URI_APPS = 'resource://windows/apps';
+const URI_UI_KEY = 'ui://windows/key';
+const URI_UI_DIAL = 'ui://windows/dial';
+const URI_UI_POPUP = 'ui://windows/popup';
 
 // =============================================================================
 // HELPERS
@@ -45,6 +60,105 @@ function sc(result) {
 }
 
 // =============================================================================
+// APP-SWITCHER: ordered app list + live resource (backs the key/dial/popup surfaces)
+// =============================================================================
+
+/** Read the switchable GUI apps, ordered stably by name (so prev/next is
+ *  predictable), with the frontmost flagged + its index. Shared by the
+ *  get_running_applications tool and the live resource watcher. */
+async function readAppList() {
+  const raw = await run(() => {
+    const se = Application('System Events');
+    return se.processes.whose({ backgroundOnly: false })().map(p => ({
+      name: p.name(),
+      bundle_id: (() => { try { return p.bundleIdentifier(); } catch { return null; } })(),
+      frontmost: (() => { try { return p.frontmost(); } catch { return false; } })(),
+    }));
+  });
+  raw.sort((a, b) => a.name.localeCompare(b.name));
+  let active_index = raw.findIndex(a => a.frontmost);
+  if (active_index < 0) active_index = 0;
+  return { applications: raw, active_index };
+}
+
+// The live app-list snapshot the surfaces bind to. Only the ordered list + frontmost
+// index live here — server-owned live DATA. The dial's transient PREVIEW cursor does
+// NOT live here; it's in the dial view's React state (in-component, repainted on
+// dispatch). One source of truth per concern: list = resource, cursor = component.
+let appsState = { applications: [], active_index: 0 };
+const subscribed = new Set();
+
+function appsSig(s) { return JSON.stringify({ a: s.applications.map(x => x.name), i: s.active_index }); }
+
+/** Poll the app list; push resources/updated only when the ordered list or frontmost
+ *  actually changed, so a bound face repaints the instant you switch apps by ANY
+ *  means (not just via this pack). */
+let _polling = false, _polledOk = false;
+async function pollApps() {
+  if (_polling) return;
+  _polling = true;
+  try {
+    const next = await readAppList();
+    if (appsSig(next) !== appsSig(appsState)) {
+      appsState = next;
+      if (subscribed.has(URI_APPS)) {
+        server.server.sendResourceUpdated({ uri: URI_APPS }).catch(() => {});
+      }
+    }
+    _polledOk = true;
+  } catch (err) {
+    if (!_polledOk) process.stderr.write(`[window_management] readAppList failed: ${err?.message ?? err}\n`);
+  } finally {
+    _polling = false;
+  }
+}
+
+let _watcher = null;
+function startWatching() {
+  if (_watcher) return;
+  const t = setInterval(pollApps, 700);
+  t.unref?.();
+  _watcher = { stop() { clearInterval(t); } };
+}
+function stopWatching() { if (_watcher) { _watcher.stop(); _watcher = null; } }
+
+async function ensurePrimed() {
+  startWatching();
+  if (appsState.applications.length === 0) await pollApps();
+}
+
+// ── Surface views (ui:// MCP-App resources) ─────────────────────────────────
+// Each view's JSX is read from a sibling .view.jsx at read time and wrapped in an
+// envelope carrying io.streamdeck/surfaces _meta. key/dial use `handles` (in-component
+// handlers); the popup drives itself (self-contained App, no trigger map).
+
+function readViewFile(name) {
+  try { return readFileSync(join(HERE, name), 'utf8'); }
+  catch { return `function Face(){ return null; } /* missing view: ${name} */`; }
+}
+
+const UI_VIEWS = {
+  [URI_UI_KEY]: {
+    name: 'Window key',
+    description: 'Key: shows the frontmost app; press cycles to the next.',
+    file: 'key.view.jsx',
+    meta: { key: { resourceUri: URI_UI_KEY, mode: 'persistent', bind: URI_APPS, handles: ['press'] } },
+  },
+  [URI_UI_DIAL]: {
+    name: 'Window dial',
+    description: 'Dial: prev|current|next strip; rotate previews (in-component), press commits.',
+    file: 'dial.view.jsx',
+    meta: { encoder: { resourceUri: URI_UI_DIAL, mode: 'persistent', bind: URI_APPS, handles: ['rotate', 'dialPress', 'touchTap'] } },
+  },
+  [URI_UI_POPUP]: {
+    name: 'Window switcher',
+    description: 'Popup app switcher: grid of all open apps; click one to activate it.',
+    file: 'popup.view.jsx',
+    meta: { popup: { resourceUri: URI_UI_POPUP, mode: 'on-demand', bind: URI_APPS } },
+  },
+};
+
+// =============================================================================
 // SHARED SCHEMAS
 // =============================================================================
 
@@ -65,21 +179,19 @@ const server = new McpServer({ name: 'window-management', version: '1.0.0' });
 
 server.registerTool('get_running_applications',
   {
-    description: 'Get a list of all currently running GUI applications.',
+    description: 'Get the currently running GUI applications, ordered stably by name, with the frontmost one flagged. `active_index` is the frontmost app\'s position in `applications` (the ordering the app-switcher dial/key navigate).',
     inputSchema: {},
     outputSchema: {
-      applications: z.array(z.object({ name: z.string(), bundle_id: z.string().nullable() })),
+      applications: z.array(z.object({
+        name: z.string(),
+        bundle_id: z.string().nullable(),
+        frontmost: z.boolean(),
+      })),
+      active_index: z.number(),
     },
   },
   async () => {
-    const apps = await run(() => {
-      const se = Application('System Events');
-      return se.processes.whose({ backgroundOnly: false })().map(p => ({
-        name: p.name(),
-        bundle_id: (() => { try { return p.bundleIdentifier(); } catch { return null; } })(),
-      }));
-    });
-    return sc({ applications: apps });
+    return sc(await readAppList());
   }
 );
 
@@ -620,6 +732,56 @@ server.registerTool('open_file',
     return sc({ success: true, message: `Opened ${file_path}${application ? ` with ${application}` : ''}` });
   }
 );
+
+// =============================================================================
+// SURFACES: register the live app-list resource + the three ui:// view resources
+// =============================================================================
+
+// Advertise resource subscription so the Studio host opens a live subscription for
+// a bound face (it only calls resources/subscribe when this capability is present).
+server.server.registerCapabilities({ resources: { subscribe: true, listChanged: true } });
+
+// The live app-list snapshot the surfaces bind to.
+server.registerResource(
+  'open-applications',
+  URI_APPS,
+  { description: 'Ordered switchable GUI apps + the frontmost index — the live data the app-switcher surfaces bind to.', mimeType: 'application/json' },
+  async () => {
+    await ensurePrimed();
+    return { contents: [{ uri: URI_APPS, mimeType: 'application/json', text: JSON.stringify(appsState) }] };
+  }
+);
+
+// The three surface views. metadata carries the io.streamdeck/surfaces _meta on BOTH
+// the list descriptor (so the host classifies the surface from resources/list) and
+// the read envelope (jsx + _meta), matching what the host's resolveUiResource reads.
+for (const [uri, v] of Object.entries(UI_VIEWS)) {
+  server.registerResource(
+    uri.replace('ui://', '').replace(/\//g, '-'),
+    uri,
+    { description: v.description, mimeType: 'application/vnd.mcp-ui+json', _meta: { [SURFACE_NS]: v.meta } },
+    async () => ({
+      contents: [{
+        uri,
+        mimeType: 'application/vnd.mcp-ui+json',
+        text: JSON.stringify({ jsx: readViewFile(v.file), _meta: { [SURFACE_NS]: v.meta } }),
+      }],
+    })
+  );
+}
+
+// Track subscriptions so pollApps only pushes resources/updated while a face is bound;
+// start/stop the watcher with the first/last subscriber to the app list.
+server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+  const uri = req.params?.uri;
+  if (uri) { subscribed.add(uri); if (uri === URI_APPS) startWatching(); }
+  return {};
+});
+server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+  const uri = req.params?.uri;
+  if (uri) { subscribed.delete(uri); if (!subscribed.has(URI_APPS)) stopWatching(); }
+  return {};
+});
 
 // =============================================================================
 
