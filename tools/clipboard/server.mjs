@@ -85,8 +85,8 @@ async function getClipboardTypes() {
 
 server.registerTool('get_clipboard', {
   description:
-    'Get the current clipboard contents. Auto-detects content type and returns accordingly: ' +
-    'text is returned as a text content block, images as base64 image content (viewable by vision models). ' +
+    'Get the current clipboard contents. Auto-detects content type: text is returned as `text` ' +
+    '(and as a text content block), images as base64 image content (viewable by vision models). ' +
     'Also reports available_types so you know what else is on the clipboard.',
   inputSchema: {
     prefer: z.enum(['text', 'image']).optional().describe(
@@ -95,6 +95,10 @@ server.registerTool('get_clipboard', {
   },
   outputSchema: z.object({
     type: z.string(),
+    // The clipboard text, for the text case — a first-class structured field so
+    // callers (and get_tool_schema) can rely on `result.text` instead of having to
+    // dig it out of the content block. Absent for the image case.
+    text: z.string().optional(),
     length: z.number().optional(),
     available_types: z.array(z.string()),
   }),
@@ -120,7 +124,10 @@ server.registerTool('get_clipboard', {
 
   const text = await getClipboardText();
   if (text) addToHistory(text);
-  const result = { type: 'text', length: text.length, available_types: types };
+  // Include the text in structuredContent so `result.text` works directly — the
+  // content block carries the same text (for vision models / display), but callers
+  // shouldn't have to reach into it.
+  const result = { type: 'text', text, length: text.length, available_types: types };
   return {
     content: [{ type: 'text', text: text || '(clipboard is empty)' }],
     structuredContent: result,
