@@ -50,6 +50,7 @@ async function as(script, timeoutMs = 15000) {
 // ── Layer 1: Tab management ───────────────────────────────────────────────────
 
 server.registerTool('open_url', {
+  icons: [{ src: 'https://api.iconify.design/mdi/open-in-new.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a URL in Safari. Opens in a new tab in the front window by default, or in a new window.',
   inputSchema: {
     url:        z.string().describe('URL to open (e.g. "https://example.com")'),
@@ -90,6 +91,7 @@ server.registerTool('open_url', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_active_tab', {
+  icons: [{ src: 'https://api.iconify.design/mdi/tab.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the URL and title of the currently active tab in the front Safari window.',
   inputSchema: {},
   outputSchema: z.object({
@@ -113,6 +115,7 @@ server.registerTool('get_active_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_tabs', {
+  icons: [{ src: 'https://api.iconify.design/mdi/tab-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all open tabs across all Safari windows. Returns [{window_index, tab_index, url, title, active}].',
   inputSchema: {},
   outputSchema: z.object({
@@ -158,6 +161,7 @@ server.registerTool('list_tabs', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('focus_tab', {
+  icons: [{ src: 'https://api.iconify.design/mdi/target.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Switch to the first Safari tab whose URL or title contains the query string (case-insensitive). Brings Safari to the foreground.',
   inputSchema: {
     query: z.string().describe('Substring to match against tab URL or title'),
@@ -204,6 +208,7 @@ server.registerTool('focus_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('close_tab', {
+  icons: [{ src: 'https://api.iconify.design/mdi/close-box.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Close a Safari tab. Closes the first tab matching the query, or the active tab if no query given.',
   inputSchema: {
     query: z.string().default('').describe('Substring to match URL or title (empty = close active tab)'),
@@ -257,6 +262,7 @@ server.registerTool('close_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('reload', {
+  icons: [{ src: 'https://api.iconify.design/mdi/reload.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Reload the active tab in the front Safari window.',
   inputSchema: {},
   outputSchema: z.object({
@@ -276,6 +282,7 @@ server.registerTool('reload', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('go_back', {
+  icons: [{ src: 'https://api.iconify.design/mdi/arrow-left.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Navigate back in history in the active tab of the front Safari window.',
   inputSchema: {},
   outputSchema: z.object({
@@ -295,6 +302,7 @@ server.registerTool('go_back', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('go_forward', {
+  icons: [{ src: 'https://api.iconify.design/mdi/arrow-right.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Navigate forward in history in the active tab of the front Safari window.',
   inputSchema: {},
   outputSchema: z.object({
@@ -314,6 +322,7 @@ server.registerTool('go_forward', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('new_window', {
+  icons: [{ src: 'https://api.iconify.design/mdi/window-maximize.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a new Safari window, optionally navigating to a URL.',
   inputSchema: {
     url: z.string().default('').describe('URL to open in the new window (empty = start page)'),
@@ -336,6 +345,7 @@ server.registerTool('new_window', {
 // ── Layer 2: JavaScript execution ────────────────────────────────────────────
 
 server.registerTool('enable_javascript', {
+  icons: [{ src: 'https://api.iconify.design/mdi/language-javascript.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Enable "Allow JavaScript from Apple Events" in Safari — required for execute_javascript, get_page_source, and get_page_text.
 Enables the Develop menu and the JavaScript from Apple Events setting via System Events menu clicks.
 Only needs to be called once; the setting persists across Safari restarts.
@@ -439,6 +449,7 @@ Requires Accessibility access for the plugin (System Preferences > Privacy & Sec
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('execute_javascript', {
+  icons: [{ src: 'https://api.iconify.design/mdi/language-javascript.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Run JavaScript in the active Safari tab and return the result.
 Works on the user's real Safari session — no separate window or port needed.
 Requires "Allow JavaScript from Apple Events" — call enable_javascript once to set it up.
@@ -465,6 +476,7 @@ Example: expression="document.title" → "My Page Title"`,
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_source', {
+  icons: [{ src: 'https://api.iconify.design/mdi/code-tags.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Get the full HTML source of the active Safari tab.
 Works on the user's real Safari session. Requires "Allow JavaScript from Apple Events" — call enable_javascript once.`,
   inputSchema: {},
@@ -487,6 +499,7 @@ Works on the user's real Safari session. Requires "Allow JavaScript from Apple E
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_text', {
+  icons: [{ src: 'https://api.iconify.design/mdi/text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Get the readable text content of the active Safari tab (strips HTML tags).
 Works on the user's real Safari session. Requires "Allow JavaScript from Apple Events" — call enable_javascript once.`,
   inputSchema: {},

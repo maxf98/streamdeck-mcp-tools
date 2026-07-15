@@ -43,6 +43,7 @@ let _audioState = null;
 // ── audio recording (ported verbatim from voice-recorder) ─────────────────────
 
 server.registerTool('start_audio_recording', {
+  icons: [{ src: 'https://api.iconify.design/mdi/record-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Start recording from the Mac microphone using QuickTime Player. macOS will ask for microphone permission on first use. Returns {status, path}.',
   inputSchema: {
     output_path: z.string().default('').describe('Where to save the recording (default: temp .m4a file in /tmp)'),
@@ -100,6 +101,7 @@ server.registerTool('start_audio_recording', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('stop_audio_recording', {
+  icons: [{ src: 'https://api.iconify.design/mdi/stop-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Stop the current audio recording and export it to M4A. Returns {path, duration_seconds}.',
   inputSchema: {},
   outputSchema: z.object({
@@ -146,6 +148,7 @@ server.registerTool('stop_audio_recording', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('audio_recording_status', {
+  icons: [{ src: 'https://api.iconify.design/mdi/record-rec.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Check whether an audio recording is currently in progress. Returns {recording, path?, elapsed_seconds?}.',
   inputSchema: {},
   outputSchema: z.object({
@@ -170,6 +173,7 @@ server.registerTool('audio_recording_status', {
 // ── screen recording ──────────────────────────────────────────────────────────
 
 server.registerTool('open_screen_recording', {
+  icons: [{ src: 'https://api.iconify.design/mdi/monitor-share.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open the QuickTime screen recording toolbar. The user clicks Record to start and Stop to finish — QuickTime handles saving. Use this to quickly launch a screen recording from a Stream Deck button.',
   inputSchema: {},
   outputSchema: z.object({
@@ -190,6 +194,7 @@ server.registerTool('open_screen_recording', {
 // ── utilities ─────────────────────────────────────────────────────────────────
 
 server.registerTool('open_file', {
+  icons: [{ src: 'https://api.iconify.design/mdi/folder-open.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a media file (video, audio, etc.) in QuickTime Player. Returns {name}.',
   inputSchema: {
     path: z.string().describe('Absolute path to the media file to open'),
@@ -217,6 +222,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_open_documents', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all documents currently open in QuickTime Player. Returns [{name, duration_seconds}].',
   inputSchema: {},
   outputSchema: z.object({

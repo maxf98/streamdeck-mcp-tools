@@ -589,6 +589,7 @@ server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool("get_volume", {
+    icons: [{ src: 'https://api.iconify.design/mdi/volume-high.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Get the macOS system output volume (0–100) and mute state.",
     inputSchema: {},
     outputSchema: { level: z.number(), muted: z.boolean() },
@@ -599,6 +600,7 @@ server.registerTool("get_volume", {
 });
 
 server.registerTool("get_input_volume", {
+    icons: [{ src: 'https://api.iconify.design/mdi/microphone.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Get the macOS system input (microphone) volume (0–100) and mute state.",
     inputSchema: {},
     outputSchema: { level: z.number(), muted: z.boolean() },
@@ -661,6 +663,7 @@ for (const name of ["set_muted", "set_input_muted"]) {
 // (rotate → nudge_volume, dialPress → toggle_mute), and are handy on their own.
 
 server.registerTool("nudge_volume", {
+    icons: [{ src: 'https://api.iconify.design/mdi/volume-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Adjust output volume by a relative amount — for a Stream Deck dial. Applies `ticks` × step "
         + "to the current default output volume (positive = louder). Returns the new level.",
     inputSchema: {
@@ -678,6 +681,7 @@ server.registerTool("nudge_volume", {
 });
 
 server.registerTool("toggle_mute", {
+    icons: [{ src: 'https://api.iconify.design/mdi/volume-mute.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Toggle output mute on/off — for a Stream Deck dial press or key. Flips the current default "
         + "output mute state. Returns the new mute state.",
     inputSchema: {},
@@ -696,6 +700,7 @@ const deviceScope = z.object({
 }).optional();
 
 server.registerTool("list_devices", {
+    icons: [{ src: 'https://api.iconify.design/mdi/speaker-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "List all audio devices with each device's current volume/mute (and whether volume is settable), plus the current default input/output device (by UID).",
     inputSchema: {},
     outputSchema: {
@@ -721,6 +726,7 @@ server.registerTool("list_devices", {
 });
 
 server.registerTool("set_default_output_device", {
+    icons: [{ src: 'https://api.iconify.design/mdi/speaker.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Set the default output device by UID (from list_devices). Requires the Core Audio helper.",
     inputSchema: { uid: z.string().describe("Device UID from list_devices.") },
     outputSchema: { uid: z.string() },
@@ -732,6 +738,7 @@ server.registerTool("set_default_output_device", {
 });
 
 server.registerTool("set_default_input_device", {
+    icons: [{ src: 'https://api.iconify.design/mdi/microphone-settings.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Set the default input device by UID (from list_devices). Requires the Core Audio helper.",
     inputSchema: { uid: z.string().describe("Device UID from list_devices.") },
     outputSchema: { uid: z.string() },

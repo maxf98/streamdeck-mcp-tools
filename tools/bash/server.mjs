@@ -46,6 +46,7 @@ function runBash(command, cwd, env, timeout) {
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('run_command', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Run a shell command and return its output. Runs via bash -c so pipes, redirects, and builtins all work. Returns {stdout, stderr, exit_code, success, command}.',
   inputSchema: {
     command: z.string().describe('Shell command to run (e.g. "ls -la ~/Desktop", "git status")'),
@@ -66,6 +67,7 @@ server.registerTool('run_command', {
 });
 
 server.registerTool('run_script', {
+  icons: [{ src: 'https://api.iconify.design/mdi/script-text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Run a multi-line bash script and return its output. Identical to run_command but intended for multi-line scripts. Returns {stdout, stderr, exit_code, success, command}.',
   inputSchema: {
     script: z.string().describe('Multi-line bash script'),
@@ -103,6 +105,7 @@ server.registerTool('run_script', {
 });
 
 server.registerTool('open_in_terminal', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console-line.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open Terminal.app and optionally run a command interactively. Great for interactive programs like `claude`, `python`, `ssh`. Returns {success, message}.',
   inputSchema: {
     command: z.string().default('').describe('Command to run in the terminal. Leave empty to just open a shell.'),
@@ -129,6 +132,7 @@ server.registerTool('open_in_terminal', {
 });
 
 server.registerTool('which', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-find.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Find where a command is installed (like `which` in the shell). Returns {found, path, command}.',
   inputSchema: {
     command: z.string().describe('Command name to look up. Example: "git", "python3", "claude"'),
@@ -150,6 +154,7 @@ server.registerTool('which', {
 });
 
 server.registerTool('get_env', {
+  icons: [{ src: 'https://api.iconify.design/mdi/variable.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get environment variables from the shell. Returns dict of {variable_name: value}. Missing vars are omitted.',
   inputSchema: {
     keys: z.array(z.string()).optional().describe('List of variable names to fetch. If empty, returns a useful subset: PATH, HOME, USER, SHELL, PWD, LANG, TERM, etc.'),
@@ -313,6 +318,7 @@ server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
 });
 
 server.registerTool('start_process', {
+  icons: [{ src: 'https://api.iconify.design/mdi/play-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Start a long-running process under a handle (process_id). Pass your OWN stable id (e.g. a button id) so a face ' +
     'can bind to resource://bash/process/{id} at author time and you can toggle it later; omit id to get a random one. ' +
@@ -361,6 +367,7 @@ server.registerTool('start_process', {
 });
 
 server.registerTool('stop_process', {
+  icons: [{ src: 'https://api.iconify.design/mdi/stop-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Stop a process started by start_process, by its process_id handle. Clears its persisted state.',
   inputSchema: { process_id: z.string().describe('The handle returned by start_process.') },
   outputSchema: z.object({ process_id: z.string(), running: z.boolean() }),
@@ -382,6 +389,7 @@ server.registerTool('stop_process', {
 });
 
 server.registerTool('list_processes', {
+  icons: [{ src: 'https://api.iconify.design/mdi/format-list-bulleted.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all processes started by start_process with their current live status.',
   inputSchema: {},
   outputSchema: z.object({

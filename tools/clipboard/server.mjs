@@ -84,6 +84,7 @@ async function getClipboardTypes() {
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Get the current clipboard contents. Auto-detects content type: text is returned as `text` ' +
     '(and as a text content block), images as base64 image content (viewable by vision models). ' +
@@ -135,6 +136,7 @@ server.registerTool('get_clipboard', {
 });
 
 server.registerTool('set_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Set the system clipboard. Supports multiple content types: ' +
     '"text" (plain text string), "html" (HTML string — also sets plain text fallback), ' +
@@ -194,6 +196,7 @@ server.registerTool('set_clipboard', {
 });
 
 server.registerTool('get_clipboard_info', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get information about all data types currently on the clipboard without reading the content. Returns {types, has_text, has_image, has_file_urls, type_count}.',
   inputSchema: {},
   outputSchema: z.object({
@@ -216,6 +219,7 @@ server.registerTool('get_clipboard_info', {
 });
 
 server.registerTool('clear_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-remove.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Clear the system clipboard of all content. Returns {success, message}.',
   inputSchema: {},
   outputSchema: z.object({
@@ -229,6 +233,7 @@ server.registerTool('clear_clipboard', {
 });
 
 server.registerTool('append_to_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Append text to the current clipboard text contents. Returns {success, message, length}.',
   inputSchema: {
     text: z.string().describe('The text to append'),
@@ -249,6 +254,7 @@ server.registerTool('append_to_clipboard', {
 });
 
 server.registerTool('prepend_to_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-arrow-up.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Prepend text to the current clipboard text contents. Returns {success, message, length}.',
   inputSchema: {
     text: z.string().describe('The text to prepend'),
@@ -269,6 +275,7 @@ server.registerTool('prepend_to_clipboard', {
 });
 
 server.registerTool('transform_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-flow.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Apply a text transformation to the current clipboard contents in place. Operations: uppercase, lowercase, titlecase, trim, strip_newlines, sort_lines, unique_lines, reverse_lines, number_lines, remove_blank_lines. Returns {success, operation, length, preview}.',
   inputSchema: {
     operation: z.string().describe('Transformation to apply: uppercase | lowercase | titlecase | trim | strip_newlines | sort_lines | unique_lines | reverse_lines | number_lines | remove_blank_lines'),
@@ -307,6 +314,7 @@ server.registerTool('transform_clipboard', {
 });
 
 server.registerTool('find_and_replace_clipboard', {
+  icons: [{ src: 'https://api.iconify.design/mdi/find-replace.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Find and replace text in the current clipboard contents. Returns {success, replacements, length}.',
   inputSchema: {
     find: z.string().describe('The text to search for'),
@@ -336,6 +344,7 @@ server.registerTool('find_and_replace_clipboard', {
 });
 
 server.registerTool('get_clipboard_history', {
+  icons: [{ src: 'https://api.iconify.design/mdi/clipboard-clock.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the in-memory clipboard history (entries tracked since the server started). Returns {entries, total_in_history}.',
   inputSchema: {
     limit: z.number().int().default(20).describe('Maximum number of history entries to return'),
@@ -365,6 +374,7 @@ server.registerTool('get_clipboard_history', {
 });
 
 server.registerTool('restore_from_history', {
+  icons: [{ src: 'https://api.iconify.design/mdi/restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Restore a clipboard entry from history back to the system clipboard. Returns {success, message, preview, length}.',
   inputSchema: {
     index: z.number().int().describe('The 0-based index in the history (0 = most recent)'),
@@ -386,6 +396,7 @@ server.registerTool('restore_from_history', {
 });
 
 server.registerTool('clear_clipboard_history', {
+  icons: [{ src: 'https://api.iconify.design/mdi/delete-clock.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Clear the in-memory clipboard history. Does not affect the current clipboard. Returns {success, message, entries_cleared}.',
   inputSchema: {},
   outputSchema: z.object({

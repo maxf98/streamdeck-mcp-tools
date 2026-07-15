@@ -40,6 +40,7 @@ function parseNotes(raw) {
 // ── tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_notes', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List notes in Apple Notes. Optionally filter by folder name. Returns [{id, name, folder, modified}].',
   inputSchema: {
     folder: z.string().default('').describe('Folder name to filter by (empty = all folders)'),
@@ -97,6 +98,7 @@ end tell`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the full content of a note by name. Returns {id, name, folder, body (HTML), plaintext, modified}.',
   inputSchema: {
     name:   z.string().describe('Note title (exact or partial match)'),
@@ -150,6 +152,7 @@ end tell`, 30000);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('create_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new note in Apple Notes. Returns {id, name, folder}.',
   inputSchema: {
     name:   z.string().describe('Note title'),
@@ -184,6 +187,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('append_to_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/text-box-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Append text to an existing note. Creates the note if it does not exist.',
   inputSchema: {
     name:   z.string().describe('Note title to find'),
@@ -221,6 +225,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('update_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Update the title or body of an existing note.',
   inputSchema: {
     name:     z.string().describe('Current note title (exact or partial match)'),
@@ -263,6 +268,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('search_notes', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Search notes by title or body content. Returns [{id, name, folder, modified}].',
   inputSchema: {
     query: z.string().describe('Search string (case-insensitive substring match)'),
@@ -311,6 +317,7 @@ end tell`, 60000);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_folders', {
+  icons: [{ src: 'https://api.iconify.design/mdi/folder-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all folders in Apple Notes. Returns [{name, note_count}].',
   inputSchema: {},
   outputSchema: z.object({
@@ -340,6 +347,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('delete_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/note-remove.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Delete a note by name. This is permanent — use with care.',
   inputSchema: {
     name:   z.string().describe('Note title (exact or partial match)'),

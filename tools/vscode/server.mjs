@@ -91,6 +91,7 @@ function sendToActive(id, payload) {
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_status', {
+  icons: [{ src: 'https://api.iconify.design/mdi/information.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Check whether any VS Code windows are connected and which is active. Returns {connected, session_count, active_session}.',
   inputSchema: {},
   outputSchema: z.object({
@@ -110,6 +111,7 @@ server.registerTool('get_status', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('execute_command', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Execute any VS Code command in the active window. ' +
     'Common commands: workbench.action.toggleSidebarVisibility, ' +
     'workbench.action.togglePanel, workbench.action.terminal.toggleTerminal, ' +
@@ -137,6 +139,7 @@ server.registerTool('execute_command', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('create_terminal', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console-line.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new integrated terminal in VS Code. Returns {success}.',
   inputSchema: {
     name:             z.string().default('').describe('Terminal tab name'),
@@ -161,6 +164,7 @@ server.registerTool('create_terminal', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('run_in_terminal', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Send a shell command to the active integrated terminal in VS Code. Returns {success}.',
   inputSchema: {
     command: z.string().describe('Shell command to run in the active terminal'),
@@ -178,6 +182,7 @@ server.registerTool('run_in_terminal', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('open_folder', {
+  icons: [{ src: 'https://api.iconify.design/mdi/folder-open.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a folder in VS Code. Returns {success}.',
   inputSchema: {
     path:       z.string().describe('Absolute path to the folder'),
@@ -196,6 +201,7 @@ server.registerTool('open_folder', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('change_language', {
+  icons: [{ src: 'https://api.iconify.design/mdi/code-braces.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Change the language mode of the active editor (e.g. "typescript", "python", "json"). Returns {success}.',
   inputSchema: {
     language_id: z.string().describe('VS Code language ID (e.g. "typescript", "python", "markdown")'),
@@ -213,6 +219,7 @@ server.registerTool('change_language', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('insert_snippet', {
+  icons: [{ src: 'https://api.iconify.design/mdi/code-tags.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Insert a named snippet into the active editor. Returns {success}.',
   inputSchema: {
     name: z.string().describe('Snippet name as defined in VS Code'),
@@ -230,6 +237,7 @@ server.registerTool('insert_snippet', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('search_commands', {
+  icons: [{ src: 'https://api.iconify.design/mdi/magnify.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Search VS Code command IDs across all installed extensions. ' +
     'Returns matching commands with their IDs and titles. ' +
     'Pass an empty query to list all commands for a specific extension (e.g. extension="claude"). ' +

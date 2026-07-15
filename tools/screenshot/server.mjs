@@ -92,6 +92,7 @@ let _recording = null; // { proc, path }
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('take_screenshot', {
+  icons: [{ src: 'https://api.iconify.design/mdi/monitor-screenshot.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Capture the screen, frontmost window, a clicked window, or a region as a PNG image. ' +
     'Saves to Desktop by default and returns the path. ' +
@@ -142,6 +143,7 @@ server.registerTool('take_screenshot', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('start_screen_recording', {
+  icons: [{ src: 'https://api.iconify.design/mdi/record-rec.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Start recording the screen to a .mov file. Returns immediately — recording runs in the background. ' +
     'Call stop_screen_recording to finish and save the file. ' +
@@ -183,6 +185,7 @@ server.registerTool('start_screen_recording', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('stop_screen_recording', {
+  icons: [{ src: 'https://api.iconify.design/mdi/stop.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Stop the current screen recording and save the file. Returns the path to the saved video.',
   inputSchema: {},
   outputSchema: {
@@ -207,6 +210,7 @@ server.registerTool('stop_screen_recording', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('list_windows', {
+  icons: [{ src: 'https://api.iconify.design/mdi/window-restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'List all visible windows with their app name, title, and screen bounds (x, y, width, height). ' +
     'Use this to discover window positions before calling take_screenshot with target="region".',

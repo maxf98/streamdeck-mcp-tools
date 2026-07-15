@@ -61,6 +61,7 @@ function parseTSV(text) {
 // ── Notes ────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_notes', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List markdown files in the vault or a sub-folder. Returns [{path, name}] sorted by path.',
   inputSchema: {
     folder: z.string().default('').describe('Sub-folder to filter by (empty = entire vault)'),
@@ -81,6 +82,7 @@ server.registerTool('list_notes', {
 });
 
 server.registerTool('read_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Read a note by name (wikilink-style) or exact path. Returns {path, content}.',
   inputSchema: {
     file: z.string().describe('Note name (e.g. "My Note") — resolves like a wikilink across the vault'),
@@ -97,6 +99,7 @@ server.registerTool('read_note', {
 });
 
 server.registerTool('write_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new note. Returns {path, created: true}.',
   inputSchema: {
     name: z.string().describe('Note name (without .md). Use slashes for sub-folders: "folder/Note Name"'),
@@ -118,6 +121,7 @@ server.registerTool('write_note', {
 });
 
 server.registerTool('append_to_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Append text to an existing note. Returns {path}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -133,6 +137,7 @@ server.registerTool('append_to_note', {
 });
 
 server.registerTool('prepend_to_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document-arrow-right.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Prepend text to an existing note. Returns {path}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -147,6 +152,7 @@ server.registerTool('prepend_to_note', {
 });
 
 server.registerTool('delete_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-document-remove.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Move a note to the Obsidian trash. Returns {path, deleted}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -160,6 +166,7 @@ server.registerTool('delete_note', {
 });
 
 server.registerTool('move_note', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-move.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Move or rename a note within the vault. Returns {old_path, new_path}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -176,6 +183,7 @@ server.registerTool('move_note', {
 // ── Search ───────────────────────────────────────────────────────────────────
 
 server.registerTool('search_notes', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Full-text search with matching line context. Returns [{file, matches:[{line, text}]}].',
   inputSchema: {
     query: z.string().describe('Search string'),
@@ -206,6 +214,7 @@ server.registerTool('search_notes', {
 // ── Structure ────────────────────────────────────────────────────────────────
 
 server.registerTool('list_folders', {
+  icons: [{ src: 'https://api.iconify.design/mdi/folder-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all folders in the vault. Returns array of folder paths.',
   inputSchema: {
     folder: z.string().optional().describe('Filter by parent folder'),
@@ -221,6 +230,7 @@ server.registerTool('list_folders', {
 });
 
 server.registerTool('get_outline', {
+  icons: [{ src: 'https://api.iconify.design/mdi/file-tree.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the heading structure of a note. Returns [{level, heading, line}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -236,6 +246,7 @@ server.registerTool('get_outline', {
 });
 
 server.registerTool('get_backlinks', {
+  icons: [{ src: 'https://api.iconify.design/mdi/link-variant.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List notes that link to a given note. Returns [{file, count}].',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -255,6 +266,7 @@ server.registerTool('get_backlinks', {
 // ── Metadata ─────────────────────────────────────────────────────────────────
 
 server.registerTool('get_properties', {
+  icons: [{ src: 'https://api.iconify.design/mdi/tag-text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Read the frontmatter properties of a note. Returns the properties as a key/value object.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -267,6 +279,7 @@ server.registerTool('get_properties', {
 });
 
 server.registerTool('set_property', {
+  icons: [{ src: 'https://api.iconify.design/mdi/tag-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Set a frontmatter property on a note. Returns {file, name, value}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -282,6 +295,7 @@ server.registerTool('set_property', {
 });
 
 server.registerTool('list_tags', {
+  icons: [{ src: 'https://api.iconify.design/mdi/tag-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all tags in the vault (or in a specific note) with occurrence counts. Returns [{tag, count}].',
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
@@ -301,6 +315,7 @@ server.registerTool('list_tags', {
 // ── Tasks ────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_tasks', {
+  icons: [{ src: 'https://api.iconify.design/mdi/format-list-checks.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List tasks across the vault or in a specific note. Returns [{status, text, file, line}].',
   inputSchema: {
     file: z.string().optional().describe('Limit to a specific note (wikilink-style)'),
@@ -331,6 +346,7 @@ server.registerTool('list_tasks', {
 });
 
 server.registerTool('toggle_task', {
+  icons: [{ src: 'https://api.iconify.design/mdi/checkbox-marked.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Toggle a task between done and todo by file and line number. Returns {file, line, done}.',
   inputSchema: {
     file: z.string().describe('Note name (wikilink-style)'),
@@ -349,6 +365,7 @@ server.registerTool('toggle_task', {
 // ── Daily notes ──────────────────────────────────────────────────────────────
 
 server.registerTool('daily_read', {
+  icons: [{ src: 'https://api.iconify.design/mdi/calendar-today.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: "Read today's daily note. Returns {path, content}.",
   inputSchema: {
     vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
@@ -361,6 +378,7 @@ server.registerTool('daily_read', {
 });
 
 server.registerTool('daily_append', {
+  icons: [{ src: 'https://api.iconify.design/mdi/calendar-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: "Append text to today's daily note (creates it if it doesn't exist). Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to append'),
@@ -374,6 +392,7 @@ server.registerTool('daily_append', {
 });
 
 server.registerTool('daily_prepend', {
+  icons: [{ src: 'https://api.iconify.design/mdi/calendar-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: "Prepend text to today's daily note. Returns {path}.",
   inputSchema: {
     content: z.string().describe('Text to prepend'),
@@ -389,6 +408,7 @@ server.registerTool('daily_prepend', {
 // ── Vault ────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_vaults', {
+  icons: [{ src: 'https://api.iconify.design/mdi/bookshelf.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all Obsidian vaults registered on this machine. Returns [{path, open}] where open=true is the currently active vault.',
   inputSchema: {},
   outputSchema: {
@@ -399,6 +419,7 @@ server.registerTool('list_vaults', {
 });
 
 server.registerTool('get_vault_stats', {
+  icons: [{ src: 'https://api.iconify.design/mdi/chart-box.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Return vault statistics. Returns {name, path, files, folders, size_bytes}.',
   inputSchema: {
     vault: z.string().describe('Absolute path to vault folder (use list_vaults to discover). Required if Obsidian cannot detect the active vault.'),
@@ -424,6 +445,7 @@ server.registerTool('get_vault_stats', {
 // ── Commands ─────────────────────────────────────────────────────────────────
 
 server.registerTool('execute_command', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Execute any Obsidian command by its ID (e.g. "daily-notes:goto-today"). Use list_commands to discover IDs.',
   inputSchema: {
     id: z.string().describe('Command ID'),
@@ -436,6 +458,7 @@ server.registerTool('execute_command', {
 });
 
 server.registerTool('list_commands', {
+  icons: [{ src: 'https://api.iconify.design/mdi/console-line.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List available Obsidian commands. Returns [{id, name}].',
   inputSchema: {
     filter: z.string().optional().describe('Filter by ID prefix (e.g. "daily-notes")'),

@@ -79,6 +79,7 @@ function parseReminders(raw) {
 // ── tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_lists', {
+  icons: [{ src: 'https://api.iconify.design/mdi/format-list-bulleted.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all reminder lists in Apple Reminders. Returns [{name, id, reminder_count}].',
   inputSchema: {},
   outputSchema: z.object({
@@ -109,6 +110,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_reminders', {
+  icons: [{ src: 'https://api.iconify.design/mdi/format-list-checks.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List reminders, optionally filtered by list. Returns [{name, id, list_name, due_date, completed, priority, notes}].',
   inputSchema: {
     list_name:         z.string().default('').describe('List name to filter by (empty = all lists)'),
@@ -193,6 +195,7 @@ end tell`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('create_reminder', {
+  icons: [{ src: 'https://api.iconify.design/mdi/bell-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new reminder in Apple Reminders. Returns {id, name, list_name}.',
   inputSchema: {
     name:      z.string().describe('Reminder title'),
@@ -235,6 +238,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('complete_reminder', {
+  icons: [{ src: 'https://api.iconify.design/mdi/check-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Mark a reminder as completed.',
   inputSchema: {
     name:      z.string().describe('Reminder title (exact or partial match)'),
@@ -266,6 +270,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('uncomplete_reminder', {
+  icons: [{ src: 'https://api.iconify.design/mdi/restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Mark a completed reminder as incomplete.',
   inputSchema: {
     name:      z.string().describe('Reminder title (exact or partial match)'),
@@ -297,6 +302,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('delete_reminder', {
+  icons: [{ src: 'https://api.iconify.design/mdi/delete.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Delete a reminder by name. This is permanent.',
   inputSchema: {
     name:      z.string().describe('Reminder title (exact or partial match)'),
@@ -329,6 +335,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('search_reminders', {
+  icons: [{ src: 'https://api.iconify.design/mdi/text-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Search reminders by name or notes across all lists.',
   inputSchema: {
     query: z.string().describe('Substring to match in reminder name or notes'),
