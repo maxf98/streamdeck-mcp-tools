@@ -96,6 +96,15 @@ let outState = null;   // { level, muted }
 let inState = null;    // { level, muted }
 let deviceState = null; // { output, input, devices: [...] }
 
+// Nudge accumulator — see nudge_volume. A fast dial scroll fires a burst of
+// RELATIVE nudges; each must build on the value we're DRIVING TOWARD, not on the
+// last hardware echo (which lags and is volume-quantized). `intendedOutput` holds
+// that target for the duration of a drag; a settle timer clears it once scrolling
+// stops so a later manual/OS change re-seeds from live state.
+let intendedOutput = null;   // { level } while a dial drag is active, else null
+let nudgeSettleTimer = null;
+const NUDGE_SETTLE_MS = 350;  // quiet gap after which a drag is considered over
+
 function makeVolSnapshot(level, muted) {
     return { level, muted, label: muted ? "Muted" : `${level}%`, at: Date.now() };
 }
@@ -113,10 +122,31 @@ function notifyUpdated(uri) {
 }
 
 function setOutState(level, muted) {
+    // While a dial drag is active, pin the DISPLAYED level to the value we're
+    // driving toward. Both callers route through here — our optimistic apply
+    // (already == intended) and the Swift hardware echo (lags, and is quantized to
+    // the ~16 hardware steps, so it reports e.g. 50 for our 52). Letting the echo
+    // through mid-drag repaints an older/off-by-a-step level over the fresh one —
+    // the bounce. We keep the true mute state, only override the level; the settle
+    // timer clears `intendedOutput` shortly after scrolling stops, and the next
+    // echo then reconciles the face to the real hardware value in one clean step.
+    if (intendedOutput) level = intendedOutput.level;
     const sig = `${level}|${muted}`;
     if (outState && `${outState.level}|${outState.muted}` === sig) return;
     outState = makeVolSnapshot(level, muted);
     notifyUpdated(URI_OUTPUT);
+}
+
+/** After a dial drag settles, re-sync the face to the true hardware level. The
+ *  drag pinned the display to our intended target; the hardware may have quantized
+ *  to a nearby step and, being idle now, won't emit on its own. `dump` forces the
+ *  Swift helper to re-emit the real value (now that `intendedOutput` is cleared,
+ *  setOutState lets it through); the poll fallback re-reads osascript. */
+function reconcileOutput() {
+    if (watcher?.write?.("dump")) return; // helper re-emits forced → real level
+    readSettings()
+        .then((s) => setOutState(s.output.level, s.output.muted))
+        .catch(() => { /* transient; next real change will reconcile */ });
 }
 
 function setInState(level, muted) {
@@ -675,8 +705,28 @@ server.registerTool("nudge_volume", {
     await ensurePrimed();
     const ticks = Number(args.ticks);
     if (!Number.isFinite(ticks)) throw new Error("nudge_volume requires a numeric 'ticks'.");
-    const current = (outState ?? makeVolSnapshot(0, false)).level;
-    const applied = await setVolume("output", current + ticks * TICK_STEP);
+    // Accumulate against the value we're DRIVING TOWARD, not the last hardware
+    // echo. A fast scroll fires several nudges before any of them commits (and
+    // before the volume-quantized echo lands); re-reading `outState` each time
+    // would compute targets off a stale/regressing base and make the dial bounce.
+    // Seed the intended target from live state on the first nudge of a drag, then
+    // advance it purely by our own ticks until scrolling goes quiet.
+    const base = intendedOutput?.level ?? (outState ?? makeVolSnapshot(0, false)).level;
+    const target = clampLevel(base + ticks * TICK_STEP);
+    intendedOutput = { level: target };
+    // Reset the settle timer on every tick — the drag is "over" only after a
+    // quiet gap, at which point we drop back to seeding from live hardware state
+    // and reconcile the face to the REAL (quantized) hardware level. Without the
+    // reconcile the key would keep showing the last pinned target (e.g. 52) even
+    // though the hardware landed on 50 and — being idle — won't emit again.
+    if (nudgeSettleTimer) clearTimeout(nudgeSettleTimer);
+    nudgeSettleTimer = setTimeout(() => {
+        intendedOutput = null;
+        nudgeSettleTimer = null;
+        reconcileOutput();
+    }, NUDGE_SETTLE_MS);
+    nudgeSettleTimer.unref?.();
+    const applied = await setVolume("output", target);
     return ok({ level: applied }, `Output volume ${applied}%.`);
 });
 
