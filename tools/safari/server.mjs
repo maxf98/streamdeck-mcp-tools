@@ -3,7 +3,7 @@
  *
  * Layer 1 – Tab management (always available):
  *   open_url, get_active_tab, list_tabs, focus_tab, close_tab,
- *   reload, go_back, go_forward, new_window
+ *   reload, go_back, go_forward, new_window, get_favicon
  *
  * Layer 2 – JavaScript execution (requires one-time setup):
  *   Call enable_javascript once to enable "Allow JavaScript from Apple Events"
@@ -339,6 +339,71 @@ server.registerTool('new_window', {
   }
   await as(`tell application "Safari" to activate`);
   const result = { success: true };
+  return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+server.registerTool('get_favicon', {
+  icons: [{ src: 'https://api.iconify.design/mdi/star-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
+  description: `Get the favicon for a URL. Fetches the page, reads its <link rel="icon"> tags (or falls back to /favicon.ico), and returns the resolved icon URL plus a base64 data URI you can render on a button face.
+If no url is given, uses the URL of the active Safari tab. No JavaScript-from-Apple-Events setup required.`,
+  inputSchema: {
+    url: z.string().default('').describe('Page URL to get the favicon for (empty = use the active Safari tab)'),
+  },
+  outputSchema: z.object({
+    page_url:     z.string(),
+    favicon_url:  z.string(),
+    mime_type:    z.string(),
+    data_uri:     z.string(),
+  }),
+}, async ({ url }) => {
+  // Resolve the page URL — fall back to the active tab.
+  let pageUrl = url;
+  if (!pageUrl) {
+    pageUrl = await as(`
+      tell application "Safari"
+        if (count of windows) is 0 then return "NO_WINDOW"
+        return URL of current tab of front window
+      end tell
+    `);
+    if (pageUrl === 'NO_WINDOW') throw new Error('No url given and no Safari windows open.');
+  }
+
+  const base = new URL(pageUrl);
+
+  // Try to discover an explicit <link rel="icon"> in the page's HTML.
+  let iconHref;
+  try {
+    const res = await fetch(pageUrl, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const html = await res.text();
+      // Collect <link rel="...icon..." href="..."> candidates (attribute order agnostic).
+      const links = html.match(/<link\b[^>]*>/gi) ?? [];
+      const candidates = [];
+      for (const tag of links) {
+        const rel = tag.match(/\brel\s*=\s*["']([^"']*)["']/i)?.[1] ?? '';
+        if (!/\bicon\b/i.test(rel)) continue;
+        const href = tag.match(/\bhref\s*=\s*["']([^"']*)["']/i)?.[1];
+        if (href) candidates.push({ rel: rel.toLowerCase(), href });
+      }
+      // Prefer the standard "icon"/"shortcut icon"; else fall back to any icon rel
+      // (apple-touch-icon, mask-icon, fluid-icon — often higher-res, good for faces).
+      const standard = candidates.find(c => /(^|\s)(shortcut\s+)?icon(\s|$)/.test(c.rel));
+      iconHref = (standard ?? candidates[0])?.href;
+    }
+  } catch { /* fall through to /favicon.ico */ }
+
+  const faviconUrl = new URL(iconHref || '/favicon.ico', base).href;
+
+  // Fetch the favicon bytes and encode as a data URI.
+  const iconRes = await fetch(faviconUrl, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
+  if (!iconRes.ok) throw new Error(`Could not fetch favicon (${iconRes.status}) at ${faviconUrl}`);
+  const mimeType = iconRes.headers.get('content-type')?.split(';')[0].trim() || 'image/x-icon';
+  const buf = Buffer.from(await iconRes.arrayBuffer());
+  const dataUri = `data:${mimeType};base64,${buf.toString('base64')}`;
+
+  const result = { page_url: pageUrl, favicon_url: faviconUrl, mime_type: mimeType, data_uri: dataUri };
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
 
