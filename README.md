@@ -224,6 +224,7 @@ Unset the variable to return to the normal download-from-catalog behavior.
 | `launcher` | macOS | Open apps, folders, URLs, reveal in Finder |
 | `obsidian` | cross | Read/write notes in an Obsidian vault |
 | `openai` | cross | GPT structured output + Whisper transcription |
+| `photoshop` | macOS | Drive Adobe Photoshop by running ExtendScript inside it — 100 tools (documents, layers, selections, masks, text, filters, adjustments, export, generative fill/remove/expand/upscale) plus 16 one-Undo workflow recipes (key, dial and popup surfaces) |
 | `voice` | macOS | Record microphone audio (Stream Deck key + on-screen recorder popup as UI resources); saves a WebM file for transcription |
 | `vscode` | cross | Control VS Code via the streamdeck-vscode extension |
 | `window_management` | macOS | Move and resize windows across screens |
