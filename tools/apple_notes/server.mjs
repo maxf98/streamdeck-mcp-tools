@@ -206,14 +206,27 @@ server.registerTool('append_to_note', {
   } else {
     findExpr = `first note of default account whose name contains "${esc(name)}"`;
   }
+  // The note body is HTML — a caller's literal "\n" is invisible there, so give
+  // callers real line breaks without making them think in HTML themselves.
+  const htmlText = esc(text).replace(/\n/g, '<br>');
+  const createTarget = folder ? `first folder whose name is "${esc(folder)}"` : `default account`;
   const raw = await as(`
 tell application "Notes"
   try
     set n to ${findExpr}
-    set body of n to (body of n) & "<br>" & "${esc(text)}"
+    set body of n to (body of n) & "<br>" & "${htmlText}"
     return (id of n) & ":::" & (name of n)
-  on error e
-    return "ERROR:::" & e
+  on error
+    -- No note matched findExpr — despite this tool's contract ("creates the
+    -- note if it does not exist"), Notes has no create-or-find primitive, so
+    -- the find above throws rather than returning nothing. Create it here.
+    try
+      set t to ${createTarget}
+      set n to make new note at t with properties {name:"${esc(name)}", body:"${htmlText}"}
+      return (id of n) & ":::" & (name of n)
+    on error e2
+      return "ERROR:::" & e2
+    end try
   end try
 end tell`);
   if (raw.startsWith('ERROR:::')) throw new Error(raw.slice(8));
