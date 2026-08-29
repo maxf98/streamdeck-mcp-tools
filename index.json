@@ -39,7 +39,7 @@
             "id": "audio",
             "name": "Audio",
             "description": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
-            "version": "3.1.0",
+            "version": "3.1.1",
             "platform": [
                 "darwin"
             ],
@@ -60,7 +60,7 @@
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
-            "version": "1.6.0",
+            "version": "1.6.1",
             "platform": [
                 "darwin"
             ],
@@ -245,7 +245,7 @@
             "id": "window_management",
             "name": "Window Management",
             "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
-            "version": "2.1.0",
+            "version": "2.1.1",
             "platform": [
                 "darwin"
             ],

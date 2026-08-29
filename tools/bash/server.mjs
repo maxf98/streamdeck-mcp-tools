@@ -287,6 +287,20 @@ function notifyProcUpdated(id) {
   if (subscribedProcs.has(uri)) server.server.sendResourceUpdated({ uri }).catch(() => {});
 }
 
+// io.streamdeck/resourceSchema — see the Studio host's convention (audio's
+// server.mjs has the fuller writeup). Matches statusFor()'s return shape.
+const PROC_STATUS_SCHEMA = {
+  type: 'object',
+  properties: {
+    process_id: { type: 'string' },
+    running: { type: 'boolean' },
+    pid: { type: 'number' },
+    command: { type: 'string' },
+    startedAt: { type: 'number' },
+  },
+  required: ['process_id', 'running'],
+};
+
 server.registerResource(
   'process',
   new ResourceTemplate(`${PROC_URI_PREFIX}{process_id}`, {
@@ -296,10 +310,11 @@ server.registerResource(
         name: `Process ${rec.process_id}`,
         description: `Live status of: ${rec.command}`,
         mimeType: 'application/json',
+        _meta: { 'io.streamdeck/resourceSchema': PROC_STATUS_SCHEMA },
       })),
     }),
   }),
-  { description: 'Live { running, pid, command } status of a process started by start_process, by its handle.' },
+  { description: 'Live { running, pid, command } status of a process started by start_process, by its handle.', _meta: { 'io.streamdeck/resourceSchema': PROC_STATUS_SCHEMA } },
   async (uri, variables) => {
     const id = variables.process_id;
     const status = statusFor(id) ?? { process_id: id, running: false, pid: null, command: null, startedAt: null };

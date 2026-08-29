@@ -2,7 +2,7 @@
     "id": "audio",
     "name": "Audio",
     "description": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
-    "version": "3.1.0",
+    "version": "3.1.1",
     "command": "node",
     "args": ["server.mjs"],
     "install": "npm install",

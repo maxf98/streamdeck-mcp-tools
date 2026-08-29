@@ -454,9 +454,57 @@ const ok = (structured, text) => ({ structuredContent: structured, content: [{ t
 // (the high-level API doesn't expose them). The watcher's debounce + start/stop
 // lifecycle is preserved verbatim — only the doorbell + dispatch are re-wired.
 
+// io.streamdeck/resourceSchema — the Studio host's convention for a resource's
+// payload shape (JSON Schema), beyond the plain mimeType. Optional for a plain
+// MCP client (it's read from `_meta` and ignored by anyone who doesn't know it);
+// lets the Studio host generate a typed elgato-sdk/audio.resources.* accessor.
+const VOL_SCHEMA = {
+    type: "object",
+    properties: {
+        level: { type: "number" },
+        muted: { type: "boolean" },
+        label: { type: "string" },
+        at: { type: "number" },
+    },
+    required: ["level", "muted", "label", "at"],
+};
+const DEVICES_SCHEMA = {
+    type: "object",
+    properties: {
+        output: { type: "string" },
+        input: { type: "string" },
+        devices: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    id: { type: "number" },
+                    uid: { type: "string" },
+                    name: { type: "string" },
+                    canInput: { type: "boolean" },
+                    canOutput: { type: "boolean" },
+                    output: {
+                        type: "object",
+                        properties: { level: { type: "number" }, muted: { type: "boolean" }, settable: { type: "boolean" } },
+                        required: ["level", "muted"],
+                    },
+                    input: {
+                        type: "object",
+                        properties: { level: { type: "number" }, muted: { type: "boolean" }, settable: { type: "boolean" } },
+                        required: ["level", "muted"],
+                    },
+                },
+                required: ["uid", "name", "canInput", "canOutput"],
+            },
+        },
+        at: { type: "number" },
+    },
+    required: ["output", "input", "devices"],
+};
+
 server.registerResource(
     "System Output Volume", URI_OUTPUT,
-    { description: "Default output device volume (0–100) and mute state.", mimeType: "application/json" },
+    { description: "Default output device volume (0–100) and mute state.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, outState ?? makeVolSnapshot(0, false)) };
@@ -465,7 +513,7 @@ server.registerResource(
 
 server.registerResource(
     "System Input Volume", URI_INPUT,
-    { description: "Default input (microphone) volume (0–100) and mute state.", mimeType: "application/json" },
+    { description: "Default input (microphone) volume (0–100) and mute state.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, inState ?? makeVolSnapshot(0, false)) };
@@ -474,7 +522,7 @@ server.registerResource(
 
 server.registerResource(
     "Audio Devices", URI_DEVICES,
-    { description: "All audio devices and the current default input/output device.", mimeType: "application/json" },
+    { description: "All audio devices and the current default input/output device.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": DEVICES_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, deviceState ?? { output: "", input: "", devices: [] }) };

@@ -761,11 +761,34 @@ server.registerTool('open_file',
 // a bound face (it only calls resources/subscribe when this capability is present).
 server.server.registerCapabilities({ resources: { subscribe: true, listChanged: true } });
 
+// io.streamdeck/resourceSchema — see the Studio host's convention (audio's
+// server.mjs has the fuller writeup). Matches appsState's shape (also the
+// get_running_applications tool's outputSchema).
+const APPS_SCHEMA = {
+  type: 'object',
+  properties: {
+    applications: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          bundle_id: { type: 'string' },
+          frontmost: { type: 'boolean' },
+        },
+        required: ['name', 'frontmost'],
+      },
+    },
+    active_index: { type: 'number' },
+  },
+  required: ['applications', 'active_index'],
+};
+
 // The live app-list snapshot the surfaces bind to.
 server.registerResource(
   'open-applications',
   URI_APPS,
-  { description: 'Ordered switchable GUI apps + the frontmost index — the live data the app-switcher surfaces bind to.', mimeType: 'application/json' },
+  { description: 'Ordered switchable GUI apps + the frontmost index — the live data the app-switcher surfaces bind to.', mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': APPS_SCHEMA } },
   async () => {
     await ensurePrimed();
     return { contents: [{ uri: URI_APPS, mimeType: 'application/json', text: JSON.stringify(appsState) }] };
