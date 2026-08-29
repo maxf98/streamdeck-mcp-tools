@@ -211,6 +211,30 @@
             "path": "tools/photoshop"
         },
         {
+            "id": "powerpoint",
+            "name": "PowerPoint",
+            "description": "Drive the open Microsoft PowerPoint presentation via AppleScript \u2014 read the live selection, restyle selected shapes and text, add text boxes and shapes, create/delete/duplicate/reorder slides, navigate the editor, and run the slide show as a presenter remote (start/exit, next/previous, jump to slide, elapsed time). Also exposes the open presentation and the live selection as subscribable resources (resource://powerpoint/presentation, resource://powerpoint/selection) plus key, dial and popup surfaces.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin"
+            ],
+            "tags": [
+                "powerpoint",
+                "presentation",
+                "slides",
+                "office",
+                "microsoft",
+                "macos",
+                "presenter",
+                "slideshow",
+                "design",
+                "key",
+                "dial",
+                "popup"
+            ],
+            "path": "tools/powerpoint"
+        },
+        {
             "id": "quicktime",
             "name": "QuickTime Player",
             "description": "Control QuickTime Player via AppleScript. Record audio (microphone \u2192 M4A) and screen (full screen \u2192 MOV), open media files, and list open documents. On first use macOS will ask permission to control QuickTime \u2014 click Allow once.",
