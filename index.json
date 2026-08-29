@@ -112,6 +112,27 @@
             "path": "tools/clipboard"
         },
         {
+            "id": "filesystem",
+            "name": "Filesystem",
+            "description": "Read, write, edit, move and search files and directories on disk. Wraps the official @modelcontextprotocol/server-filesystem \u2014 every operation is confined to the folders you allow, and paths outside them are refused. Set the allowed roots in this pack's config before use.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin",
+                "linux",
+                "win32"
+            ],
+            "tags": [
+                "filesystem",
+                "files",
+                "directories",
+                "read",
+                "write",
+                "search",
+                "disk"
+            ],
+            "path": "tools/filesystem"
+        },
+        {
             "id": "launcher",
             "name": "Launcher",
             "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
