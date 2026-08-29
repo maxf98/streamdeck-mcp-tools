@@ -2,7 +2,7 @@
   "id": "screenshot",
   "name": "Screenshot",
   "description": "Capture the screen, frontmost window, a clicked window, or an interactive drag-selected region as a PNG image. Saves to a path (creating folders as needed) or returns base64. Also records the screen to video.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",

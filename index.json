@@ -5,7 +5,7 @@
             "id": "apple_notes",
             "name": "Apple Notes",
             "description": "Read and write notes in Apple Notes. List, search, create, update, append and delete notes and folders.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -22,7 +22,7 @@
             "id": "apple_reminders",
             "name": "Apple Reminders",
             "description": "Manage Apple Reminders \u2014 list, create, complete, delete and search reminders across all lists.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -39,7 +39,7 @@
             "id": "audio",
             "name": "Audio",
             "description": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
-            "version": "3.0.0",
+            "version": "3.1.0",
             "platform": [
                 "darwin"
             ],
@@ -60,7 +60,7 @@
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
-            "version": "1.5.0",
+            "version": "1.6.0",
             "platform": [
                 "darwin"
             ],
@@ -80,7 +80,7 @@
             "id": "chrome",
             "name": "Google Chrome",
             "description": "Control Chrome tabs and windows via JXA. Optionally enable CDP (--remote-debugging-port=9222) for JS execution, page source, and screenshots.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -99,7 +99,7 @@
             "id": "clipboard",
             "name": "Clipboard",
             "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -115,7 +115,7 @@
             "id": "launcher",
             "name": "Launcher",
             "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -133,7 +133,7 @@
             "id": "obsidian",
             "name": "Obsidian",
             "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "platform": [
                 "darwin"
             ],
@@ -149,7 +149,7 @@
             "id": "openai",
             "name": "OpenAI",
             "description": "Structured LLM calls, image analysis (GPT-4o vision), and Whisper audio transcription. All tools share a single API key.",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "platform": [
                 "darwin",
                 "linux",
@@ -169,7 +169,7 @@
             "id": "quicktime",
             "name": "QuickTime Player",
             "description": "Control QuickTime Player via AppleScript. Record audio (microphone \u2192 M4A) and screen (full screen \u2192 MOV), open media files, and list open documents. On first use macOS will ask permission to control QuickTime \u2014 click Allow once.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],
@@ -188,7 +188,7 @@
             "id": "safari",
             "name": "Safari",
             "description": "Control Safari tabs and windows via AppleScript. Includes JS execution, page source and text via 'Allow JavaScript from Apple Events' (no extension or debug port needed).",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "platform": [
                 "darwin"
             ],
@@ -207,7 +207,7 @@
             "id": "screenshot",
             "name": "Screenshot",
             "description": "Capture the screen, frontmost window, a clicked window, or an interactive drag-selected region as a PNG image. Saves to a path (creating folders as needed) or returns base64. Also records the screen to video.",
-            "version": "1.2.0",
+            "version": "1.3.0",
             "platform": [
                 "darwin"
             ],
@@ -226,7 +226,7 @@
             "id": "vscode",
             "name": "VS Code",
             "description": "Control VS Code windows \u2014 toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin",
                 "win32",
@@ -245,7 +245,7 @@
             "id": "window_management",
             "name": "Window Management",
             "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
-            "version": "2.0.0",
+            "version": "2.1.0",
             "platform": [
                 "darwin"
             ],
@@ -268,7 +268,7 @@
             "id": "xcode",
             "name": "Xcode",
             "description": "Drive the running Xcode session via AppleScript \u2014 build, run, test, clean and stop the active scheme, read structured build errors/warnings/test failures, switch schemes, inspect projects/targets/build settings, open files and jump to a line. Also exposes the active workspace's live build state as a subscribable resource (resource://xcode/build) plus key, dial and popup surfaces.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin"
             ],

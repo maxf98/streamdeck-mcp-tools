@@ -29,8 +29,8 @@
  *   claude.openPanel  (or check Claude Code extension's command ID)
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { WebSocketServer } from 'ws';
 import { readdir, readFile } from 'node:fs/promises';

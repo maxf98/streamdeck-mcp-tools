@@ -2,7 +2,7 @@
   "id": "quicktime",
   "name": "QuickTime Player",
   "description": "Control QuickTime Player via AppleScript. Record audio (microphone → M4A) and screen (full screen → MOV), open media files, and list open documents. On first use macOS will ask permission to control QuickTime — click Allow once.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",

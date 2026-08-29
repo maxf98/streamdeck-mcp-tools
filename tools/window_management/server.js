@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { run } from '@jxa/run';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -793,12 +792,12 @@ for (const [uri, v] of Object.entries(UI_VIEWS)) {
 
 // Track subscriptions so pollApps only pushes resources/updated while a face is bound;
 // start/stop the watcher with the first/last subscriber to the app list.
-server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/subscribe', async (req) => {
   const uri = req.params?.uri;
   if (uri) { subscribed.add(uri); if (uri === URI_APPS) startWatching(); }
   return {};
 });
-server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/unsubscribe', async (req) => {
   const uri = req.params?.uri;
   if (uri) { subscribed.delete(uri); if (!subscribed.has(URI_APPS)) stopWatching(); }
   return {};

@@ -2,7 +2,7 @@
 /**
  * audio — a stdio MCP server for macOS audio.
  *
- * Built on the official `@modelcontextprotocol/sdk` (McpServer + the stdio
+ * Built on the official `@modelcontextprotocol/server` SDK (McpServer + the stdio
  * transport), so it's unified with the other tool packs in this repo (bash,
  * safari, clipboard, …) — same framing, same `npm install`, same registration
  * API — rather than hand-rolling JSON-RPC over stdio. It exposes the macOS audio
@@ -30,9 +30,8 @@
  * output/input volume + mute (device switching requires the Swift helper).
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SubscribeRequestSchema, UnsubscribeRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
 import { execFile, spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
@@ -598,7 +597,7 @@ const RESOURCE_URIS = new Set([URI_OUTPUT, URI_INPUT, URI_DEVICES]);
 // Subscribe gating: start the watcher when a resource is first subscribed, stop
 // it when the last subscriber leaves. `subscribed` stays the single source of
 // truth for both the start/stop lifecycle and `notifyUpdated`'s push gating.
-server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/subscribe', async (req) => {
     const uri = req.params.uri;
     if (RESOURCE_URIS.has(uri)) {
         subscribed.add(uri);
@@ -607,7 +606,7 @@ server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
     return {};
 });
 
-server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/unsubscribe', async (req) => {
     const uri = req.params.uri;
     if (uri) {
         subscribed.delete(uri);
@@ -644,6 +643,13 @@ for (const name of ["set_volume", "set_input_volume"]) {
     const channel = name === "set_input_volume" ? "input" : "output";
     const dflt = channel === "input" ? "input" : "output";
     server.registerTool(name, {
+        icons: [{
+            src: channel === "input"
+                ? 'https://api.iconify.design/mdi/microphone-settings.svg'
+                : 'https://api.iconify.design/mdi/volume-medium.svg',
+            mimeType: 'image/svg+xml',
+            sizes: ['any'],
+        }],
         description: name === "set_input_volume"
             ? "Set input (microphone) volume (0–100). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper; device must expose a settable volume)."
             : "Set output volume (0–100). Targets the default output device, or a specific device when 'device' (a UID from list_devices) is given. Setting a specific device requires the Core Audio helper, and the device must expose a settable volume (see 'settable' in list_devices).",
@@ -667,6 +673,13 @@ for (const name of ["set_muted", "set_input_muted"]) {
     const channel = name === "set_input_muted" ? "input" : "output";
     const dflt = channel === "input" ? "input" : "output";
     server.registerTool(name, {
+        icons: [{
+            src: channel === "input"
+                ? 'https://api.iconify.design/mdi/microphone-off.svg'
+                : 'https://api.iconify.design/mdi/volume-off.svg',
+            mimeType: 'image/svg+xml',
+            sizes: ['any'],
+        }],
         description: name === "set_input_muted"
             ? "Mute or unmute input (microphone). Targets the default input device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper)."
             : "Mute or unmute output. Targets the default output device, or a specific device when 'device' (a UID) is given (requires the Core Audio helper).",

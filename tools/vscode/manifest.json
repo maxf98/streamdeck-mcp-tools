@@ -2,7 +2,7 @@
   "id": "vscode",
   "name": "VS Code",
   "description": "Control VS Code windows — toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",

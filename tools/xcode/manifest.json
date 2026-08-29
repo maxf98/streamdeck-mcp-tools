@@ -2,7 +2,7 @@
   "id": "xcode",
   "name": "Xcode",
   "description": "Drive the running Xcode session via AppleScript — build, run, test, clean and stop the active scheme, read structured build errors/warnings/test failures, switch schemes, inspect projects/targets/build settings, open files and jump to a line. Also exposes the active workspace's live build state as a subscribable resource (resource://xcode/build) plus key, dial and popup surfaces.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",

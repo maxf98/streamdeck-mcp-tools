@@ -72,17 +72,21 @@ tools/
 
 ### `server.mjs`
 
-Standard MCP server pattern using `@modelcontextprotocol/sdk`:
+Standard MCP server pattern using the **v2 SDK** (`@modelcontextprotocol/server`,
+the split-package successor to the unified `@modelcontextprotocol/sdk@1`):
 
 ```javascript
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 
 const server = new McpServer({ name: 'my_pack', version: '1.0.0' });
 
 server.registerTool('do_something', {
   description: 'What this tool does. Be specific — the description is used for tool selection.',
+  // Icons reach the client under v2 (SDK v1 silently dropped them from
+  // tools/list), so give every tool one — the Studio shows it in the tool picker.
+  icons: [{ src: 'https://api.iconify.design/mdi/star.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   inputSchema: {
     text: z.string().describe('The text to process'),
   },
@@ -102,13 +106,38 @@ await server.connect(new StdioServerTransport());
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "zod": "^3.23.8"
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.2.0"
   }
 }
 ```
 
-All packs need `@modelcontextprotocol/sdk` and `zod`. Add other dependencies as needed — they install into the pack's own `node_modules/`.
+All packs need `@modelcontextprotocol/server` and `zod` (v4 — the v2 SDK requires
+it). Add other dependencies as needed — they install into the pack's own
+`node_modules/`.
+
+**Live resources.** A pack that pushes `notifications/resources/updated` handles
+subscribe itself. Under v2 `setRequestHandler` takes a method **string**, not a
+request schema — so there's nothing to import from `@modelcontextprotocol/core`:
+
+```javascript
+server.server.setRequestHandler('resources/subscribe', async (req) => {
+  subscribed.add(req.params.uri);   // then start polling / watching
+  return {};
+});
+server.server.setRequestHandler('resources/unsubscribe', async (req) => {
+  subscribed.delete(req.params.uri);
+  return {};
+});
+```
+
+Gate the work on an actual subscription — an idle pack shouldn't poll. See
+`tools/audio`, `tools/bash`, `tools/window_management` and `tools/xcode`.
+
+**A tool with an `outputSchema` must return `structuredContent` on success.** The
+SDK rewrites a content-only success return into an `isError` result complaining
+about the missing structured content. Branches that genuinely fail should set
+`isError: true` explicitly (those are never validated), or omit `outputSchema`.
 
 ---
 

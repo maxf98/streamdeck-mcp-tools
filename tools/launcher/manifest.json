@@ -2,7 +2,7 @@
   "id": "launcher",
   "name": "Launcher",
   "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",

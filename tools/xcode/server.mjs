@@ -79,9 +79,8 @@
  * (see PREFS_PATH), and build state is always re-read from Xcode.
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { execFile } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -530,7 +529,7 @@ for (const [uri, v] of Object.entries(UI_VIEWS)) {
 // Only the data resources are pollable; the ui:// views are static reads.
 const LIVE_URIS = new Set([URI_BUILD, URI_WORKSPACE]);
 
-server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/subscribe', async (req) => {
   const uri = req.params?.uri;
   if (uri && LIVE_URIS.has(uri)) {
     subscribed.add(uri);
@@ -539,7 +538,7 @@ server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
   return {};
 });
 
-server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/unsubscribe', async (req) => {
   const uri = req.params?.uri;
   if (uri) {
     subscribed.delete(uri);

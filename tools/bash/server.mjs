@@ -1,6 +1,5 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { execFile, execFileSync, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -308,11 +307,11 @@ server.registerResource(
   },
 );
 
-server.server.setRequestHandler(SubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/subscribe', async (req) => {
   if (req.params?.uri && idFromUri(req.params.uri)) subscribedProcs.add(req.params.uri);
   return {};
 });
-server.server.setRequestHandler(UnsubscribeRequestSchema, async (req) => {
+server.server.setRequestHandler('resources/unsubscribe', async (req) => {
   if (req.params?.uri) subscribedProcs.delete(req.params.uri);
   return {};
 });
