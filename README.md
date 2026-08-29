@@ -198,3 +198,4 @@ Unset the variable to return to the normal download-from-catalog behavior.
 | `voice` | macOS | Record microphone audio (Stream Deck key + on-screen recorder popup as UI resources); saves a WebM file for transcription |
 | `vscode` | cross | Control VS Code via the streamdeck-vscode extension |
 | `window_management` | macOS | Move and resize windows across screens |
+| `xcode` | macOS | Drive the running Xcode session via AppleScript — build/run/test/clean, structured issues, schemes, build settings, editor and simulators (key, dial and popup surfaces) |
