@@ -115,7 +115,7 @@
             "id": "filesystem",
             "name": "Filesystem",
             "description": "Read, write, edit, move and search files and directories on disk. Wraps the official @modelcontextprotocol/server-filesystem \u2014 every operation is confined to the folders you allow, and paths outside them are refused. Set the allowed roots in this pack's config before use.",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "platform": [
                 "darwin",
                 "linux",

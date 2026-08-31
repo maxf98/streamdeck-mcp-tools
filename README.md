@@ -46,10 +46,11 @@ tools/
   "platform": ["darwin"],
   "tags": ["keyword", "another-keyword"],
   "config_schema": {
-    "MY_API_KEY": {
+    "api_key": {
       "description": "API key for the service",
-      "required": true,
-      "secret": true
+      "env": "MY_API_KEY",
+      "type": "secret",
+      "required": true
     }
   }
 }
@@ -66,7 +67,26 @@ tools/
 | `install` | ✓ | Always `"npm install"` |
 | `platform` | ✓ | `["darwin"]`, `["win32"]`, `["linux"]`, or any combination |
 | `tags` | ✓ | Used for search/discovery |
-| `config_schema` | | Env vars the user must supply (API keys, vault paths, etc.) |
+| `config_schema` | | Values the user must supply (API keys, vault paths, etc.) — see below |
+
+#### `config_schema`
+
+Each entry is keyed by a field name (how it's stored and labelled) and declares
+the `env` var it becomes, plus a `type`:
+
+| `type` | Editor | Reaches the server as |
+|---|---|---|
+| `string`, `number`, `path` | text input | the env var, and substituted for `${ENV_VAR}` in `args` |
+| `secret` | masked input | same, but never echoed back to the UI |
+| `enum` | dropdown over `options` | same |
+| `path-list` | repeatable rows (add/remove) | **one argv entry per value** where `args` contains exactly `${ENV_VAR}`; also joined by the platform path delimiter into the env var |
+
+`path-list` is how a pack takes a *set* of directories — e.g. `filesystem`, whose
+upstream server accepts allowed roots positionally (`server /a /b`). Prefer it
+over MCP roots for this: dynamic roots is being retired, argv isn't. A required
+field is unsatisfied when it has no stored value and no `default`; for a
+`path-list`, an empty list counts as unset, and the pack is shown as "needs
+setup" with a Configure button rather than being started with a broken argv.
 
 > **Important:** Pack IDs must use underscores, not hyphens. The gateway exposes tools as `{packId}__{toolName}` and button code references packs via `mcp.my_pack.tool_name()`. Hyphens break dot-notation access.
 
