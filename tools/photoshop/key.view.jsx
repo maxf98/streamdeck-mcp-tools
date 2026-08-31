@@ -32,8 +32,13 @@ function Face({ data }) {
   var h = (data && data.height) || null;
   var layers = (data && data.layerCount) || 0;
 
-  React.useEffect(function () {
-    Face.__hasDocument = !!(data && data.hasDocument);
+  var hasDoc = !!(data && data.hasDocument);
+
+  // press → export a preview beside the document. No-op with nothing open, rather
+  // than firing a tool call that can only come back as an error.
+  useKeyDown(function (_p, sd) {
+    if (!sd || !hasDoc) return;
+    return sd.callTool("photoshop", "get_preview", { max_dimension_px: 1024 });
   });
 
   return (
@@ -71,10 +76,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// press → export a preview beside the document. No-op with nothing open, rather
-// than firing a tool call that can only come back as an error.
-Face.onKeyDown = function (_p, sd) {
-  if (!sd || !Face.__hasDocument) return;
-  return sd.callTool("photoshop", "get_preview", { max_dimension_px: 1024 });
-};

@@ -46,14 +46,26 @@ function Face({ data }) {
   // dropping any uncommitted preview — the face must never show a stale foreground app.
   const [preview, setPreview] = React.useState(activeIndex);
   React.useEffect(() => {
-    Face.__setPreview = setPreview;
-    Face.__len = apps.length;
-    Face.__preview = preview;
-    Face.__apps = apps;
-  });
-  React.useEffect(() => {
     setPreview(activeIndex);
   }, [activeIndex]);
+
+  // rotate → move the in-component preview cursor (wraps). No tool, no server state —
+  // repaints from local React state via the dispatch capture.
+  useDialRotate((delta) => {
+    const n = apps.length;
+    if (!n) return;
+    setPreview((p) => (((p + (delta || 0)) % n) + n) % n);
+  });
+
+  // press / tap → commit: activate the previewed app. The frontmost change that follows
+  // re-seeds the cursor automatically (see the activeIndex effect above).
+  const commit = (sd) => {
+    const target = apps[preview];
+    if (!target || !sd) return;
+    return sd.callTool("window_management", "activate_application", { application: target.name });
+  };
+  useDialPress((_p, sd) => commit(sd));
+  useTouchTap((_p, sd) => commit(sd));
 
   const cur = at(apps, preview);
   return (
@@ -69,22 +81,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// rotate → move the in-component preview cursor (wraps). No tool, no server state —
-// repaints from local React state via the dispatch capture.
-Face.onDialRotate = function (delta) {
-  const n = Face.__len || 0;
-  if (!n || !Face.__setPreview) return;
-  Face.__setPreview(function (p) { return (((p + (delta || 0)) % n) + n) % n; });
-};
-
-// press / tap → commit: activate the previewed app. The frontmost change that follows
-// re-seeds the cursor automatically (see the activeIndex effect above).
-function commit(sd) {
-  const apps = Face.__apps || [];
-  const target = apps[Face.__preview];
-  if (!target || !sd) return;
-  return sd.callTool("window_management", "activate_application", { application: target.name });
-}
-Face.onDialPress = function (_p, sd) { return commit(sd); };
-Face.onTouchTap = function (_p, sd) { return commit(sd); };

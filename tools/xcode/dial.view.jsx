@@ -40,12 +40,29 @@ function Face({ data }) {
     return function () { cancelled = true; };
   }, [activeScheme]);
 
-  React.useEffect(function () {
-    Face.__schemes = schemes;
-    Face.__preview = preview;
-    Face.__setPreview = setPreview;
-    Face.__running = running;
+  // rotate → move the preview cursor. Pure local state, no tool call: switching the
+  // active scheme on every detent would fire an Apple event per click.
+  useDialRotate(function (delta) {
+    var n = schemes.length;
+    if (!n) return;
+    setPreview(function (p) { return (((p + (delta || 0)) % n) + n) % n; });
   });
+
+  // press → commit: activate the previewed scheme, then build it. Pressing while a
+  // build runs stops it instead.
+  function commit(sd) {
+    if (!sd) return;
+    if (running) return sd.callTool("xcode", "stop", {});
+    var n = schemes.length;
+    if (!n) return sd.callTool("xcode", "build", { wait: false });
+    var target = schemes[(((preview % n) + n) % n)];
+    if (!target) return;
+    return sd.callTool("xcode", "set_scheme", { scheme: target.name })
+      .then(function () { return sd.callTool("xcode", "build", { wait: false }); });
+  }
+
+  useDialPress(function (_p, sd) { return commit(sd); });
+  useTouchTap(function (_p, sd) { return commit(sd); });
 
   var current = schemes.length ? schemes[((preview % schemes.length) + schemes.length) % schemes.length] : null;
   var currentName = current ? current.name : (activeScheme || "—");
@@ -85,28 +102,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// rotate → move the preview cursor. Pure local state, no tool call: switching the
-// active scheme on every detent would fire an Apple event per click.
-Face.onDialRotate = function (delta) {
-  var n = (Face.__schemes || []).length;
-  if (!n || !Face.__setPreview) return;
-  Face.__setPreview(function (p) { return (((p + (delta || 0)) % n) + n) % n; });
-};
-
-// press → commit: activate the previewed scheme, then build it. Pressing while a
-// build runs stops it instead.
-function commit(sd) {
-  if (!sd) return;
-  if (Face.__running) return sd.callTool("xcode", "stop", {});
-  var schemes = Face.__schemes || [];
-  var n = schemes.length;
-  if (!n) return sd.callTool("xcode", "build", { wait: false });
-  var target = schemes[(((Face.__preview % n) + n) % n)];
-  if (!target) return;
-  return sd.callTool("xcode", "set_scheme", { scheme: target.name })
-    .then(function () { return sd.callTool("xcode", "build", { wait: false }); });
-}
-
-Face.onDialPress = function (_p, sd) { return commit(sd); };
-Face.onTouchTap = function (_p, sd) { return commit(sd); };

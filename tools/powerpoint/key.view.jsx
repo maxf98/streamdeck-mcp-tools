@@ -27,7 +27,12 @@ function Face({ data }) {
   var pos = running ? ((data && data.slideshow_position) || 0) : ((data && data.current_slide) || 0);
   var title = (data && data.current_slide_title) || null;
 
-  React.useEffect(function () { Face.__running = running; });
+  // press → advance. next_slide handles both modes itself, so there's nothing to
+  // branch on here.
+  useKeyDown(function (_p, sd) {
+    if (!sd) return;
+    return sd.callTool("powerpoint", "next_slide", {});
+  });
 
   var look = !open
     ? { bg: "linear-gradient(160deg,#26282e,#15161a)", accent: "#6b7280" }
@@ -85,10 +90,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// press → advance. next_slide handles both modes itself, so there's nothing to
-// branch on here.
-Face.onKeyDown = function (_p, sd) {
-  if (!sd) return;
-  return sd.callTool("powerpoint", "next_slide", {});
-};

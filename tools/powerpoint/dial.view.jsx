@@ -27,18 +27,56 @@ function Face({ data }) {
   var cursor = cursorState[0];
   var setCursor = cursorState[1];
 
+  // The in-flight scrub target and its debounce timer: mutable across renders and
+  // never rendered, so refs rather than state.
+  var pendingRef = React.useRef(null);
+  var timerRef = React.useRef(null);
+
   // Re-sync to the app whenever it moves on its own — a click in PowerPoint, the
   // keyboard, or our own committed jump. Skipped while a scrub is in flight so we
   // don't fight the user's hand with a stale snapshot.
   React.useEffect(function () {
-    if (!Face.__pending) setCursor(serverPos);
+    if (!pendingRef.current) setCursor(serverPos);
   }, [serverPos, running]);
 
-  React.useEffect(function () {
-    Face.__total = total;
-    Face.__running = running;
-    Face.__cursor = cursor;
-    Face.__setCursor = setCursor;
+  // rotate → move the cursor now, commit shortly after the hand stops.
+  useDialRotate(function (delta, sd) {
+    if (!total) return;
+    setCursor(function (c) {
+      // Clamp instead of wrapping: spinning past the last slide shouldn't teleport
+      // you back to the title.
+      var n = (c || 0) + (delta || 0);
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      pendingRef.current = n;
+      return n;
+    });
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(function () {
+      var target = pendingRef.current;
+      pendingRef.current = null;
+      timerRef.current = null;
+      if (!sd || !target) return;
+      // A running show jumps outright (animations skipped); the editor just navigates.
+      if (running) sd.callTool("powerpoint", "goto_slide_in_show", { slide_index: target }).catch(function () {});
+      else sd.callTool("powerpoint", "navigate_to_slide", { slide_index: target }).catch(function () {});
+    }, COMMIT_MS);
+  });
+
+  // press → start presenting from where the dial is parked, or advance if already
+  // presenting.
+  useDialPress(function (_p, sd) {
+    if (!sd) return;
+    if (running) return sd.callTool("powerpoint", "next_slide", {});
+    return sd.callTool("powerpoint", "start_slideshow", { from_slide: cursor || 1 });
+  });
+
+  // tap the touch strip → get out of the show.
+  useTouchTap(function (_p, sd) {
+    if (!sd) return;
+    if (running) return sd.callTool("powerpoint", "exit_slideshow", {});
+    return sd.callTool("powerpoint", "get_presentation_info", {});
   });
 
   if (!total) {
@@ -93,44 +131,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// rotate → move the cursor now, commit shortly after the hand stops.
-Face.onDialRotate = function (delta, sd) {
-  var total = Face.__total || 0;
-  if (!total || !Face.__setCursor) return;
-  Face.__setCursor(function (c) {
-    // Clamp instead of wrapping: spinning past the last slide shouldn't teleport
-    // you back to the title.
-    var n = (c || 0) + (delta || 0);
-    if (n < 1) n = 1;
-    if (n > total) n = total;
-    Face.__pending = n;
-    return n;
-  });
-
-  if (Face.__timer) clearTimeout(Face.__timer);
-  Face.__timer = setTimeout(function () {
-    var target = Face.__pending;
-    Face.__pending = null;
-    Face.__timer = null;
-    if (!sd || !target) return;
-    // A running show jumps outright (animations skipped); the editor just navigates.
-    if (Face.__running) sd.callTool("powerpoint", "goto_slide_in_show", { slide_index: target }).catch(function () {});
-    else sd.callTool("powerpoint", "navigate_to_slide", { slide_index: target }).catch(function () {});
-  }, COMMIT_MS);
-};
-
-// press → start presenting from where the dial is parked, or advance if already
-// presenting.
-Face.onDialPress = function (_p, sd) {
-  if (!sd) return;
-  if (Face.__running) return sd.callTool("powerpoint", "next_slide", {});
-  return sd.callTool("powerpoint", "start_slideshow", { from_slide: Face.__cursor || 1 });
-};
-
-// tap the touch strip → get out of the show.
-Face.onTouchTap = function (_p, sd) {
-  if (!sd) return;
-  if (Face.__running) return sd.callTool("powerpoint", "exit_slideshow", {});
-  return sd.callTool("powerpoint", "get_presentation_info", {});
-};

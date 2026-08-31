@@ -15,8 +15,8 @@ const SPACES_PLIST = join(homedir(), 'Library/Preferences/com.apple.spaces.plist
 // Stream Deck surfaces (io.streamdeck/surfaces extension). The app-switcher key,
 // dial and popup ship as ui:// MCP-App resources whose _meta binds each to a live
 // app-list resource. The key/dial declare `handles` (in-component handlers), so the
-// host injects the hardware event into the live face — its Face.onKeyDown/onDialRotate
-// runs and calls a tool directly. No preview/commit "controller" tools: the dial's
+// host injects the hardware event into the live face — the useKeyDown/useDialRotate
+// handler registered inside its Face runs and calls a tool directly. No preview/commit "controller" tools: the dial's
 // preview cursor lives in the view's React state; committing calls activate_application.
 const SURFACE_NS = 'io.streamdeck/surfaces';
 const URI_APPS = 'resource://windows/apps';

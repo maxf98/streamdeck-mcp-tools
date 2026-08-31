@@ -37,7 +37,15 @@ function Face({ data }) {
   var testFailures = (data && data.test_failures) || 0;
   var scheme = (data && data.scheme) || null;
 
-  React.useEffect(function () { Face.__running = !!(data && data.running); });
+  var running = !!(data && data.running);
+
+  // press → build, or stop if a build is already running (so one key does both).
+  // The handler lives in the component and closes over `running` directly.
+  useKeyDown(function (_p, sd) {
+    if (!sd) return;
+    if (running) return sd.callTool("xcode", "stop", {});
+    return sd.callTool("xcode", "build", { wait: false });
+  });
 
   return (
     <div style={{
@@ -76,10 +84,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// press → build, or stop if a build is already running (so one key does both).
-Face.onKeyDown = function (_p, sd) {
-  if (!sd) return;
-  if (Face.__running) return sd.callTool("xcode", "stop", {});
-  return sd.callTool("xcode", "build", { wait: false });
-};

@@ -41,6 +41,9 @@ function Face({ data }) {
   var dirtyState = React.useState(false);
   var dirty = dirtyState[0];
   var setDirty = dirtyState[1];
+  // Visibility is a ref, not state: the press handler both reads and writes it and
+  // nothing renders from it, so re-rendering on a toggle would be pure waste.
+  var visibleRef = React.useRef(true);
 
   // Re-seed whenever the active layer changes underneath us, so the dial starts
   // from that layer's real opacity rather than the last one's.
@@ -62,17 +65,32 @@ function Face({ data }) {
         setOpacity(Math.round(found.opacity));
         setDirty(false);
       }
-      // Seed the press handler's toggle from reality (see Face.onDialPress).
-      if (found && typeof found.visible === "boolean") Face.__visible = found.visible;
+      // Seed the press handler's toggle from reality (see useDialPress below).
+      if (found && typeof found.visible === "boolean") visibleRef.current = found.visible;
     }).catch(function () {});
     return function () { cancelled = true; };
   }, [layerName, hasDoc]);
 
-  React.useEffect(function () {
-    Face.__opacity = opacity;
-    Face.__setOpacity = setOpacity;
-    Face.__setDirty = setDirty;
-    Face.__hasDocument = hasDoc;
+  // rotate → move and commit. Photoshop is fast enough for a per-detent set, and a
+  // deferred commit would leave the face showing a value the document doesn't have.
+  useDialRotate(function (delta, sd) {
+    if (!hasDoc) return;
+    var next = Math.max(0, Math.min(100, opacity + (delta || 0) * STEP));
+    if (next === opacity) return;
+    setOpacity(next);
+    setDirty(true);
+    if (!sd) return;
+    return sd.callTool("photoshop", "set_layer_opacity", { opacity: next });
+  });
+
+  // press → hide/show the layer, the other thing a hand on this dial wants.
+  // `visible` is seeded from the layer list (above) rather than assumed, so the
+  // first press can't send the state the layer is already in.
+  useDialPress(function (_p, sd) {
+    if (!sd || !hasDoc) return;
+    var next = !visibleRef.current;
+    return sd.callTool("photoshop", "set_layer_visibility", { visible: next })
+      .then(function () { visibleRef.current = next; });
   });
 
   return (
@@ -109,25 +127,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// rotate → move and commit. Photoshop is fast enough for a per-detent set, and a
-// deferred commit would leave the face showing a value the document doesn't have.
-Face.onDialRotate = function (delta, sd) {
-  if (!Face.__setOpacity || !Face.__hasDocument) return;
-  var next = Math.max(0, Math.min(100, (Face.__opacity || 0) + (delta || 0) * STEP));
-  if (next === Face.__opacity) return;
-  Face.__setOpacity(next);
-  Face.__setDirty(true);
-  if (!sd) return;
-  return sd.callTool("photoshop", "set_layer_opacity", { opacity: next });
-};
-
-// press → hide/show the layer, the other thing a hand on this dial wants.
-// `visible` is seeded from the layer list (below) rather than assumed, so the
-// first press can't send the state the layer is already in.
-Face.onDialPress = function (_p, sd) {
-  if (!sd || !Face.__hasDocument) return;
-  var next = !Face.__visible;
-  return sd.callTool("photoshop", "set_layer_visibility", { visible: next })
-    .then(function () { Face.__visible = next; });
-};

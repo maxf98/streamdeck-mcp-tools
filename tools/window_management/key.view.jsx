@@ -1,5 +1,5 @@
 // KEY surface — shows the frontmost app; press cycles to the next app in the ordered
-// list. Live in-component handler (surfaces v2): onKeyDown computes the next app from
+// list. Live in-component handler (surfaces v2): useKeyDown computes the next app from
 // the bound data and activates it directly — no cycle_app "controller" tool. `data`
 // is the live value of resource://windows/apps ({ applications, active_index }).
 window.__states = {
@@ -17,7 +17,14 @@ function Face({ data }) {
   const apps = (data && data.applications) || [];
   const idx = (data && typeof data.active_index === "number") ? data.active_index : 0;
   const active = apps[idx] || null;
-  React.useEffect(() => { Face.__apps = apps; Face.__idx = idx; });
+  // press → activate the NEXT app in the ordered list (wraps). The bound resource
+  // repaints the face once the frontmost actually changes.
+  useKeyDown((_p, sd) => {
+    const n = apps.length;
+    if (!n || !sd) return;
+    const next = apps[(idx + 1) % n];
+    return sd.callTool("window_management", "activate_application", { application: next.name });
+  });
 
   return (
     <div style={{
@@ -44,13 +51,3 @@ function Face({ data }) {
     </div>
   );
 }
-
-// press → activate the NEXT app in the ordered list (wraps). The bound resource
-// repaints the face once the frontmost actually changes.
-Face.onKeyDown = function (_p, sd) {
-  const apps = Face.__apps || [];
-  const n = apps.length;
-  if (!n || !sd) return;
-  const next = apps[(Face.__idx + 1) % n];
-  return sd.callTool("window_management", "activate_application", { application: next.name });
-};
