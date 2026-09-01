@@ -333,24 +333,30 @@ server.server.setRequestHandler('resources/unsubscribe', async (req) => {
 
 // ── Surfaces ─────────────────────────────────────────────────────────────────
 
+// The io.streamdeck/surfaces block is KEYED BY SURFACE ("key"/"encoder"/"popup"),
+// not a list of {type} objects — the host iterates the known surface keys, so an
+// array yields no surface at all (no button generated, no handles read, no event
+// injected). `handles` names the slots the view registers via in-component hooks
+// (useKeyDown/useDialRotate/…); it must match the view, or the host has no reason
+// to inject the hardware event.
 const SURFACES = {
     [URI_UI_KEY]: {
         name: 'Photoshop Key',
         file: 'key.view.jsx',
         description: 'Stream Deck key face: document name, size and layer count, live.',
-        surfaces: [{ type: 'key', bind: URI_DOCUMENT }],
+        surfaces: { key: { resourceUri: URI_UI_KEY, mode: 'persistent', bind: URI_DOCUMENT, handles: ['press'] } },
     },
     [URI_UI_DIAL]: {
         name: 'Photoshop Dial',
         file: 'dial.view.jsx',
         description: 'Stream Deck dial face: scrub the active layer\'s opacity.',
-        surfaces: [{ type: 'encoder', bind: URI_DOCUMENT }],
+        surfaces: { encoder: { resourceUri: URI_UI_DIAL, mode: 'persistent', bind: URI_DOCUMENT, handles: ['rotate', 'dialPress'] } },
     },
     [URI_UI_POPUP]: {
         name: 'Photoshop Panel',
         file: 'popup.view.jsx',
         description: 'On-screen panel: document state, layer list and one-press actions.',
-        surfaces: [{ type: 'popup', bind: URI_DOCUMENT }],
+        surfaces: { popup: { resourceUri: URI_UI_POPUP, mode: 'on-demand', bind: URI_DOCUMENT } },
     },
 };
 

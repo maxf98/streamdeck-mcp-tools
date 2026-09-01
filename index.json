@@ -190,7 +190,7 @@
             "id": "photoshop",
             "name": "Photoshop",
             "description": "Drive Adobe Photoshop by script \u2014 100 tools covering documents, layers (create/order/transform/properties/masks), selections, text, filters, colour adjustments, layer styles, history, actions, data sets, image stacks, export/place, and the generative-AI family (fill, remove, expand, upscale, sky replacement, generate image). Includes 16 multi-step recipe tools that run a whole workflow (remove background, enhance portrait, frequency separation, batch watermark, CSV to cards\u2026) inside one suspended history state, so a single Undo reverts the lot. Works by running ExtendScript inside Photoshop over AppleScript's `do javascript`, with no plugin to install. Also exposes the active document's live state as a subscribable resource (resource://photoshop/document) plus key, dial and popup surfaces.",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "platform": [
                 "darwin"
             ],
