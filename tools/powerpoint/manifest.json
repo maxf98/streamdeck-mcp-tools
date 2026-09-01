@@ -2,7 +2,7 @@
   "id": "powerpoint",
   "name": "PowerPoint",
   "description": "Drive the open Microsoft PowerPoint presentation via AppleScript — read the live selection, restyle selected shapes and text, add text boxes and shapes, create/delete/duplicate/reorder slides, navigate the editor, and run the slide show as a presenter remote (start/exit, next/previous, jump to slide, elapsed time). Also exposes the open presentation and the live selection as subscribable resources (resource://powerpoint/presentation, resource://powerpoint/selection) plus key, dial and popup surfaces.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "command": "node",
   "args": ["server.mjs"],
   "install": "npm install",
