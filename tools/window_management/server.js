@@ -68,16 +68,35 @@ function sc(result) {
 async function readAppList() {
   const raw = await run(() => {
     const se = Application('System Events');
-    return se.processes.whose({ backgroundOnly: false })().map(p => ({
-      name: p.name(),
-      bundle_id: (() => { try { return p.bundleIdentifier(); } catch { return null; } })(),
-      frontmost: (() => { try { return p.frontmost(); } catch { return false; } })(),
-    }));
+    const out = [];
+    // Snapshot the collection ONCE — `whose(...)()` is a live query, and re-reading it
+    // per element races apps launching/quitting, which surfaces as "Invalid index.
+    // (-1719)" / "Can't get object. (-1728)" from System Events.
+    let procs;
+    try { procs = se.processes.whose({ backgroundOnly: false })(); } catch { return out; }
+    for (const p of procs) {
+      // name() throws OR returns null for a process that vanished between the
+      // snapshot and this read (and for a few Apple helpers that never expose one).
+      // A null name used to reach localeCompare below and throw, killing the whole
+      // poll — so an unnamed process must be SKIPPED, not carried through.
+      let name = null;
+      try { name = p.name(); } catch { continue; }
+      if (typeof name !== 'string' || !name) continue;
+      out.push({
+        name,
+        bundle_id: (() => { try { return p.bundleIdentifier() ?? null; } catch { return null; } })(),
+        frontmost: (() => { try { return !!p.frontmost(); } catch { return false; } })(),
+      });
+    }
+    return out;
   });
-  raw.sort((a, b) => a.name.localeCompare(b.name));
-  let active_index = raw.findIndex(a => a.frontmost);
+  // Defensive: the JXA side already filters, but a null here must never take the
+  // poll down (it retries every 700ms, so a throw becomes an endless error storm).
+  const apps = (raw ?? []).filter(a => a && typeof a.name === 'string');
+  apps.sort((a, b) => a.name.localeCompare(b.name));
+  let active_index = apps.findIndex(a => a.frontmost);
   if (active_index < 0) active_index = 0;
-  return { applications: raw, active_index };
+  return { applications: apps, active_index };
 }
 
 // The live app-list snapshot the surfaces bind to. Only the ordered list + frontmost
@@ -92,7 +111,7 @@ function appsSig(s) { return JSON.stringify({ a: s.applications.map(x => x.name)
 /** Poll the app list; push resources/updated only when the ordered list or frontmost
  *  actually changed, so a bound face repaints the instant you switch apps by ANY
  *  means (not just via this pack). */
-let _polling = false, _polledOk = false;
+let _polling = false, _lastPollError = null;
 async function pollApps() {
   if (_polling) return;
   _polling = true;
@@ -104,9 +123,17 @@ async function pollApps() {
         server.server.sendResourceUpdated({ uri: URI_APPS }).catch(() => {});
       }
     }
-    _polledOk = true;
+    _lastPollError = null;   // recovered — a later failure is news again
   } catch (err) {
-    if (!_polledOk) process.stderr.write(`[window_management] readAppList failed: ${err?.message ?? err}\n`);
+    // Log a given failure ONCE. This polls every 700ms, so an error that persists
+    // (or recurs, as a transient System Events -1719 does) otherwise floods stderr
+    // with the same line forever. `_polledOk` alone didn't bound it: any failure
+    // AFTER the first success logged on every tick.
+    const msg = String(err?.message ?? err);
+    if (msg !== _lastPollError) {
+      _lastPollError = msg;
+      process.stderr.write(`[window_management] readAppList failed: ${msg}\n`);
+    }
   } finally {
     _polling = false;
   }
