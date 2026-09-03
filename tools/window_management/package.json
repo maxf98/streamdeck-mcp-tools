@@ -2,9 +2,9 @@
   "name": "window-management-mcp",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "server.mjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.mjs"
   },
   "dependencies": {
     "@jxa/run": "^1.0.5",
