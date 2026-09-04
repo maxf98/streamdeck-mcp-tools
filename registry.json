@@ -1,0 +1,51 @@
+{
+  "mcpServers": {
+    "miro": {
+      "url": "https://mcp.miro.com/",
+      "transport": "streamable-http"
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp",
+      "transport": "streamable-http"
+    },
+    "atlassian": {
+      "url": "https://mcp.atlassian.com/v1/mcp",
+      "transport": "streamable-http"
+    },
+    "coda": {
+      "url": "https://coda.io/apis/mcp",
+      "transport": "streamable-http"
+    },
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "transport": "streamable-http"
+    },
+    "paypal": {
+      "url": "https://mcp.paypal.com/mcp",
+      "transport": "streamable-http"
+    },
+    "canva": {
+      "url": "https://mcp.canva.com/mcp",
+      "transport": "streamable-http",
+      "scopes": "profile:read design:meta:read design:content:read design:content:write folder:read folder:write asset:read asset:write comment:read comment:write"
+    },
+    "gitlab": {
+      "url": "https://gitlab.com/api/v4/mcp",
+      "transport": "streamable-http",
+      "scopes": "mcp"
+    },
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "transport": "streamable-http",
+      "auth": "api-key",
+      "apiKeyUrl": "https://github.com/settings/tokens"
+    },
+    "slack": {
+      "url": "https://mcp.slack.com/mcp",
+      "transport": "streamable-http",
+      "scopes": "search:read.public chat:write channels:history users:read users:read.email canvases:read canvases:write",
+      "clientId": "392247373648.10663617022481",
+      "exchangeProxy": true
+    }
+  }
+}

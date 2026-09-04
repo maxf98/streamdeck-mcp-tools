@@ -161,6 +161,42 @@ about the missing structured content. Branches that genuinely fail should set
 
 ---
 
+## registry.json — the REMOTE server list
+
+`registry.json` next to `index.json` is a different thing from the pack catalog, and it
+lives here for the same reason: the Studio fetches it over raw.githubusercontent.com, so
+**adding a remote MCP server is a commit to this repo, not a deploy.**
+
+Remote servers (Notion, Figma, Slack, …) are hosted by their vendors — nothing is
+installed. Each entry says only what a client needs to authenticate:
+
+```json
+"notion": { "url": "https://mcp.notion.com/mcp", "transport": "streamable-http" }
+```
+
+Most need nothing more, because they support MCP's dynamic client registration + PKCE.
+The exceptions carry extra fields: `scopes` when the provider's authorization server
+advertises no defaults, `auth: "api-key"` + `apiKeyUrl` for providers that don't let
+third parties do OAuth at all (GitHub), and `clientId` + `exchangeProxy: true` for a
+pre-registered app whose code→token exchange needs a client secret (Slack).
+
+**Do not hand-edit this file.** It is generated from the typed list in the
+`streamdeck-mcp-registry` repo, where every entry carries a comment explaining the
+provider quirk behind it:
+
+```bash
+cd ../streamdeck-mcp-registry
+npm run emit -- ../streamdeck-mcp-tools/registry.json
+```
+
+`clientId` values here are public by construction — they travel in every authorize URL.
+Client **secrets** are not in this file and never will be: the one provider that needs
+one (Slack) has its exchange proxied by the registry service, which holds the secret as
+an env var. If you are adding a server that needs a secret, it needs a service-side
+handler too, not a field here.
+
+---
+
 ## Adding a pack to the catalog
 
 1. Create `tools/<your-pack-id>/` with the three required files
