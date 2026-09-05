@@ -21,6 +21,7 @@ async function open(...args) {
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('open_app', {
+  title: 'Open App',
   icons: [{ src: 'https://api.iconify.design/mdi/rocket-launch.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Launch a macOS application by name (e.g. "Safari", "Spotify", "Cursor"). ' +
     'Brings the app to the front if already running. Returns {success}.',
@@ -40,6 +41,7 @@ server.registerTool('open_app', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('open_folder', {
+  title: 'Open Folder',
   icons: [{ src: 'https://api.iconify.design/mdi/folder-open.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a folder in Finder. Returns {success, path}.',
   inputSchema: {
@@ -58,6 +60,7 @@ server.registerTool('open_folder', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('open_url', {
+  title: 'Open URL',
   icons: [{ src: 'https://api.iconify.design/mdi/web.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a URL in the default browser, or in a specific browser by name ' +
     '(e.g. "Safari", "Google Chrome", "Firefox"). Returns {success, url}.',
@@ -82,6 +85,7 @@ server.registerTool('open_url', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('reveal_in_finder', {
+  title: 'Reveal in Finder',
   icons: [{ src: 'https://api.iconify.design/mdi/folder-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Reveal a file or folder in Finder (selects it in its parent folder). ' +
     'Returns {success, path}.',
@@ -101,6 +105,7 @@ server.registerTool('reveal_in_finder', {
 // ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 
 server.registerTool('open_with', {
+  title: 'Open With',
   icons: [{ src: 'https://api.iconify.design/mdi/open-in-app.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a file or folder with a specific application ' +
     '(e.g. open a folder in Cursor, or an image in Photoshop). Returns {success, path, app}.',

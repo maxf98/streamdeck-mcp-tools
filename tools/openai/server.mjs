@@ -24,6 +24,7 @@ const MIME_MAP = {
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('call_llm', {
+  title: 'Ask a Model',
   icons: [{ src: 'https://api.iconify.design/mdi/robot.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Call OpenAI with a JSON schema and receive a structured JSON response.',
   inputSchema: {
@@ -93,6 +94,7 @@ server.registerTool('call_llm', {
 });
 
 server.registerTool('analyze_image', {
+  title: 'Analyse Image',
   icons: [{ src: 'https://api.iconify.design/mdi/image-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
     'Send an image to a GPT vision model with a prompt and get back an analysis. ' +
@@ -174,6 +176,7 @@ server.registerTool('analyze_image', {
 });
 
 server.registerTool('transcribe_file', {
+  title: 'Transcribe Audio',
   icons: [{ src: 'https://api.iconify.design/mdi/transcribe.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Transcribe an audio file using OpenAI Whisper. Accepts M4A, MP4, MP3, WAV, WebM, FLAC, OGG, etc. Returns {transcript, path}.',
   inputSchema: {

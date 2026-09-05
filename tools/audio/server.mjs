@@ -666,6 +666,7 @@ server.server.setRequestHandler('resources/unsubscribe', async (req) => {
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool("get_volume", {
+    title: "Output Volume",
     icons: [{ src: 'https://api.iconify.design/mdi/volume-high.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Get the macOS system output volume (0–100) and mute state.",
     inputSchema: {},
@@ -677,6 +678,7 @@ server.registerTool("get_volume", {
 });
 
 server.registerTool("get_input_volume", {
+    title: "Input Volume",
     icons: [{ src: 'https://api.iconify.design/mdi/microphone.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Get the macOS system input (microphone) volume (0–100) and mute state.",
     inputSchema: {},
@@ -691,6 +693,7 @@ for (const name of ["set_volume", "set_input_volume"]) {
     const channel = name === "set_input_volume" ? "input" : "output";
     const dflt = channel === "input" ? "input" : "output";
     server.registerTool(name, {
+        title: channel === "input" ? "Set Input Volume" : "Set Output Volume",
         icons: [{
             src: channel === "input"
                 ? 'https://api.iconify.design/mdi/microphone-settings.svg'
@@ -721,6 +724,7 @@ for (const name of ["set_muted", "set_input_muted"]) {
     const channel = name === "set_input_muted" ? "input" : "output";
     const dflt = channel === "input" ? "input" : "output";
     server.registerTool(name, {
+        title: channel === "input" ? "Mute / Unmute Input" : "Mute / Unmute Output",
         icons: [{
             src: channel === "input"
                 ? 'https://api.iconify.design/mdi/microphone-off.svg'
@@ -754,6 +758,7 @@ for (const name of ["set_muted", "set_input_muted"]) {
 // (rotate → nudge_volume, dialPress → toggle_mute), and are handy on their own.
 
 server.registerTool("nudge_volume", {
+    title: "Nudge Volume",
     icons: [{ src: 'https://api.iconify.design/mdi/volume-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Adjust output volume by a relative amount — for a Stream Deck dial. Applies `ticks` × step "
         + "to the current default output volume (positive = louder). Returns the new level.",
@@ -792,6 +797,7 @@ server.registerTool("nudge_volume", {
 });
 
 server.registerTool("toggle_mute", {
+    title: "Toggle Mute",
     icons: [{ src: 'https://api.iconify.design/mdi/volume-mute.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Toggle output mute on/off — for a Stream Deck dial press or key. Flips the current default "
         + "output mute state. Returns the new mute state.",
@@ -811,6 +817,7 @@ const deviceScope = z.object({
 }).optional();
 
 server.registerTool("list_devices", {
+    title: "List Audio Devices",
     icons: [{ src: 'https://api.iconify.design/mdi/speaker-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "List all audio devices with each device's current volume/mute (and whether volume is settable), plus the current default input/output device (by UID).",
     inputSchema: {},
@@ -837,6 +844,7 @@ server.registerTool("list_devices", {
 });
 
 server.registerTool("set_default_output_device", {
+    title: "Set Default Output Device",
     icons: [{ src: 'https://api.iconify.design/mdi/speaker.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Set the default output device by UID (from list_devices). Requires the Core Audio helper.",
     inputSchema: { uid: z.string().describe("Device UID from list_devices.") },
@@ -849,6 +857,7 @@ server.registerTool("set_default_output_device", {
 });
 
 server.registerTool("set_default_input_device", {
+    title: "Set Default Input Device",
     icons: [{ src: 'https://api.iconify.design/mdi/microphone-settings.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: "Set the default input device by UID (from list_devices). Requires the Core Audio helper.",
     inputSchema: { uid: z.string().describe("Device UID from list_devices.") },

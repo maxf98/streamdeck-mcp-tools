@@ -702,6 +702,7 @@ const icon = (name) => [{ src: `https://api.iconify.design/mdi/${name}.svg`, mim
 // =============================================================================
 
 server.registerTool('get_presentation_info', {
+  title: 'Presentation Info',
   icons: icon('information-outline'),
   description: 'Get the open presentation: name, file path, slide count, which slide the editor is on (and its title), whether there are unsaved changes, and live slide-show state. Cheap — safe to call on a face refresh.',
   inputSchema: {},
@@ -723,6 +724,7 @@ server.registerTool('get_presentation_info', {
 });
 
 server.registerTool('list_slides', {
+  title: 'List Slides',
   icons: icon('view-list-outline'),
   description: 'List every slide with its index, title (the text of its first text-bearing shape), shape count and layout. Use this to find the slide you want before navigating or editing.',
   inputSchema: {
@@ -756,6 +758,7 @@ return buf
 });
 
 server.registerTool('get_slide', {
+  title: 'Get Slide',
   icons: icon('card-text-outline'),
   description: 'Get one slide in detail — every shape with its name, type, position, size, rotation, visibility and text. Omit slide_index to inspect the slide the editor is currently on.',
   inputSchema: {
@@ -813,6 +816,7 @@ return buf
 });
 
 server.registerTool('get_selection', {
+  title: 'Get Selection',
   icons: icon('select-drag'),
   description: 'Get what the user has selected RIGHT NOW in PowerPoint — selection kind, slide, and each selected shape\'s name, type, geometry, text and font. This is the live-app capability a file-based library cannot offer; use it to make a button act on whatever the user is pointing at.',
   inputSchema: {},
@@ -848,6 +852,7 @@ server.registerTool('get_selection', {
 // =============================================================================
 
 server.registerTool('set_selection_font', {
+  title: 'Set Font',
   icons: icon('format-font'),
   description: 'Set font properties on the current selection — family, size, bold, italic, underline, color. Works on selected shapes (all their text) or on a selected text range. Omitted properties are left alone.',
   inputSchema: {
@@ -901,6 +906,7 @@ return (n as text) & "${US}" & (didText as text)
 });
 
 server.registerTool('style_selection', {
+  title: 'Style Selection',
   icons: icon('format-paint'),
   description: 'Style the selected shapes — fill color, border color, border weight, and fill/border visibility. Note: setting a border color or weight also forces the dash style solid, because PowerPoint otherwise leaves the border invisible.',
   inputSchema: {
@@ -956,6 +962,7 @@ server.registerTool('style_selection', {
 });
 
 server.registerTool('set_selection_text', {
+  title: 'Set Text',
   icons: icon('format-text'),
   description: 'Replace the text of the selected shape(s). Every selected shape that can hold text gets the same string — handy for a button that stamps a standard label.',
   inputSchema: {
@@ -972,6 +979,7 @@ server.registerTool('set_selection_text', {
 });
 
 server.registerTool('rearrange_selection', {
+  title: 'Rearrange Selection',
   icons: icon('align-horizontal-left'),
   description: 'Align, distribute or stack the selected shapes: align their left/right/top/bottom edges or centers, space them evenly, or lay them out in a row or column. Needs at least two shapes selected (three for distribute).',
   inputSchema: {
@@ -1058,6 +1066,7 @@ return "ok"
 // =============================================================================
 
 server.registerTool('create_slide', {
+  title: 'Create Slide',
   icons: icon('plus-box-outline'),
   description: 'Create a new slide. By default it goes after the current slide; pass position to place it elsewhere. Returns the new slide index.',
   inputSchema: {
@@ -1113,6 +1122,7 @@ return (finalIdx as text) & "${US}" & ((count of slides of pres) as text)
 });
 
 server.registerTool('delete_slide', {
+  title: 'Delete Slide',
   icons: icon('delete-outline'),
   description: 'Delete a slide by index. Omit slide_index to delete the slide the editor is currently on. This is not undoable through this pack — PowerPoint\'s own Undo still works.',
   inputSchema: {
@@ -1137,6 +1147,7 @@ return (idx as text) & "${US}" & ((count of slides of pres) as text)
 });
 
 server.registerTool('duplicate_slide', {
+  title: 'Duplicate Slide',
   icons: icon('content-duplicate'),
   description: 'Duplicate a slide, placing the copy right after the original. Omit slide_index to duplicate the current slide. Useful as a one-press "give me another one like this".',
   inputSchema: {
@@ -1174,6 +1185,7 @@ return (idx as text) & "${US}" & (newIdx as text) & "${US}" & ((count of slides 
 });
 
 server.registerTool('move_slide', {
+  title: 'Move Slide',
   icons: icon('swap-vertical'),
   description: 'Move a slide to a different position in the deck.',
   inputSchema: {
@@ -1203,6 +1215,7 @@ return "ok"
 // =============================================================================
 
 server.registerTool('add_text_box', {
+  title: 'Add Text Box',
   icons: icon('format-text-variant-outline'),
   description: 'Add a text box to a slide. Borderless and unfilled by default so it reads as plain text. Omit slide_index to add it to the current slide.',
   inputSchema: {
@@ -1254,6 +1267,7 @@ end tell
 });
 
 server.registerTool('add_shape', {
+  title: 'Add Shape',
   icons: icon('shape-outline'),
   description: 'Add a shape to a slide — rectangle, rounded rectangle, oval, triangle, diamond, arrow, star, or a callout — with optional fill, border and text. Omit slide_index to add it to the current slide.',
   inputSchema: {
@@ -1328,6 +1342,7 @@ end tell
 });
 
 server.registerTool('delete_selection', {
+  title: 'Delete Selection',
   icons: icon('close-box-outline'),
   description: 'Delete the currently selected shape(s). PowerPoint\'s own Undo (Cmd-Z) still reverses this.',
   inputSchema: {},
@@ -1357,6 +1372,7 @@ return n as text
 // =============================================================================
 
 server.registerTool('navigate_to_slide', {
+  title: 'Go to Slide',
   icons: icon('arrow-right-bold-box-outline'),
   description: 'Move the PowerPoint editor to a slide. Accepts an absolute index, or a relative step via delta (+1 / -1) which clamps at the ends of the deck. This drives the editing view, not a running slide show — use next_slide for that.',
   inputSchema: {
@@ -1386,6 +1402,7 @@ return (idx as text) & "${US}" & (total as text) & "${US}" & my titleOf(slide id
 });
 
 server.registerTool('select_shape', {
+  title: 'Select Shape',
   icons: icon('cursor-default-click-outline'),
   description: 'Select one shape so the styling tools act on it. Identify it by index or by name; omit slide_index to look on the current slide. PowerPoint\'s AppleScript cannot extend a selection, so this replaces it — to act on several shapes, use select_all_shapes, or let the user multi-select by hand and read it with get_selection.',
   inputSchema: {
@@ -1442,6 +1459,7 @@ return (idx as text) & "${US}" & my orNull(name of tgt)
 });
 
 server.registerTool('select_all_shapes', {
+  title: 'Select All Shapes',
   icons: icon('select-all'),
   description: 'Select every shape on a slide — the usual setup for a one-press restyle or realign. Omit slide_index to use the current slide.',
   inputSchema: {
@@ -1504,6 +1522,7 @@ return r as text
 }
 
 server.registerTool('start_slideshow', {
+  title: 'Start Slideshow',
   icons: icon('play-box-outline'),
   description: 'Start the slide show. By default it begins at the slide the editor is on, so a button press picks up where you were; pass from_slide to start elsewhere, or from_start=true to begin at slide 1. If a show is already running this reports the current position instead of restarting.',
   inputSchema: {
@@ -1546,6 +1565,7 @@ return startIdx as text
 });
 
 server.registerTool('exit_slideshow', {
+  title: 'Exit Slideshow',
   icons: icon('stop-circle-outline'),
   description: 'Exit the running slide show and return to the editor. Reports exited=false rather than failing if no show is running, so a button can call it unconditionally.',
   inputSchema: {},
@@ -1558,6 +1578,7 @@ server.registerTool('exit_slideshow', {
 });
 
 server.registerTool('next_slide', {
+  title: 'Next Slide',
   icons: icon('skip-next-outline'),
   description: 'Advance the running slide show to the next slide. If no show is running, advances the EDITOR to the next slide instead — so one button works in both modes. Clamps at the end of the deck.',
   inputSchema: {},
@@ -1583,6 +1604,7 @@ return idx as text
 });
 
 server.registerTool('previous_slide', {
+  title: 'Previous Slide',
   icons: icon('skip-previous-outline'),
   description: 'Step the running slide show back one slide. If no show is running, moves the EDITOR back instead. Clamps at slide 1.',
   inputSchema: {},
@@ -1607,6 +1629,7 @@ return idx as text
 });
 
 server.registerTool('goto_slide_in_show', {
+  title: 'Go to Slide (Slideshow)',
   icons: icon('debug-step-over'),
   description: 'Move the running slide show to a specific slide. PowerPoint offers no direct jump inside a show, so this steps slide-by-slide (animations are skipped, but a long jump takes a moment). Errors if no show is running — use navigate_to_slide for the editor.',
   inputSchema: {
@@ -1648,6 +1671,7 @@ return ((slide index of (slide of ssv)) as text) & "${US}" & (steps as text)
 });
 
 server.registerTool('get_slideshow_state', {
+  title: 'Slideshow State',
   icons: icon('timer-outline'),
   description: 'Get slide-show state: whether a show is running, which deck slide it is on, and elapsed seconds for the whole show and the current slide. Cheap — this is what a presenter face polls.',
   inputSchema: {},
@@ -1685,6 +1709,7 @@ return my orNull(slide index of (slide of ssv)) & "${US}" & ((count of slides of
 // =============================================================================
 
 server.registerTool('save_presentation', {
+  title: 'Save Presentation',
   icons: icon('content-save-outline'),
   description: 'Save the open presentation. Fails clearly if it has never been saved (no file path yet) — this pack will not invent a location for it.',
   inputSchema: {},

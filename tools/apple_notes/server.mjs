@@ -40,6 +40,7 @@ function parseNotes(raw) {
 // ── tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_notes', {
+  title: 'List Notes',
   icons: [{ src: 'https://api.iconify.design/mdi/note-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List notes in Apple Notes. Optionally filter by folder name. Returns [{id, name, folder, modified}].',
   inputSchema: {
@@ -98,6 +99,7 @@ end tell`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_note', {
+  title: 'Get Note',
   icons: [{ src: 'https://api.iconify.design/mdi/note-text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the full content of a note by name. Returns {id, name, folder, body (HTML), plaintext, modified}.',
   inputSchema: {
@@ -152,6 +154,7 @@ end tell`, 30000);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('create_note', {
+  title: 'Create Note',
   icons: [{ src: 'https://api.iconify.design/mdi/note-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new note in Apple Notes. Returns {id, name, folder}.',
   inputSchema: {
@@ -187,6 +190,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('append_to_note', {
+  title: 'Append to Note',
   icons: [{ src: 'https://api.iconify.design/mdi/text-box-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Append text to an existing note. Creates the note if it does not exist.',
   inputSchema: {
@@ -238,6 +242,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('update_note', {
+  title: 'Update Note',
   icons: [{ src: 'https://api.iconify.design/mdi/note-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Update the title or body of an existing note.',
   inputSchema: {
@@ -281,6 +286,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('search_notes', {
+  title: 'Search Notes',
   icons: [{ src: 'https://api.iconify.design/mdi/note-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Search notes by title or body content. Returns [{id, name, folder, modified}].',
   inputSchema: {
@@ -330,6 +336,7 @@ end tell`, 60000);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_folders', {
+  title: 'List Folders',
   icons: [{ src: 'https://api.iconify.design/mdi/folder-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all folders in Apple Notes. Returns [{name, note_count}].',
   inputSchema: {},
@@ -360,6 +367,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('delete_note', {
+  title: 'Delete Note',
   icons: [{ src: 'https://api.iconify.design/mdi/note-remove.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Delete a note by name. This is permanent — use with care.',
   inputSchema: {

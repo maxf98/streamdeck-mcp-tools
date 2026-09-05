@@ -89,6 +89,7 @@ function cdpCall(wsUrl, method, params = {}) {
 // ── Layer 1: Tab management ───────────────────────────────────────────────────
 
 server.registerTool('open_url', {
+  title: 'Open URL',
   icons: [{ src: 'https://api.iconify.design/mdi/open-in-new.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a URL in Google Chrome. Opens in a new tab in the front window by default, or in a new window.',
   inputSchema: {
@@ -120,6 +121,7 @@ server.registerTool('open_url', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_active_tab', {
+  title: 'Active Tab',
   icons: [{ src: 'https://api.iconify.design/mdi/tab.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the URL and title of the currently active tab in the front Chrome window.',
   inputSchema: {},
@@ -141,6 +143,7 @@ server.registerTool('get_active_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_tabs', {
+  title: 'List Tabs',
   icons: [{ src: 'https://api.iconify.design/mdi/tab-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all open tabs across all Chrome windows. Returns [{window_index, tab_index, url, title, active}].',
   inputSchema: {},
@@ -173,6 +176,7 @@ server.registerTool('list_tabs', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('focus_tab', {
+  title: 'Focus Tab',
   icons: [{ src: 'https://api.iconify.design/mdi/target.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Switch to the first tab whose URL or title contains the query string (case-insensitive). Brings Chrome to the foreground.',
   inputSchema: {
@@ -213,6 +217,7 @@ server.registerTool('focus_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('close_tab', {
+  title: 'Close Tab',
   icons: [{ src: 'https://api.iconify.design/mdi/close-box.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Close a Chrome tab. Closes the first tab matching the query, or the active tab if no query given.',
   inputSchema: {
@@ -257,6 +262,7 @@ server.registerTool('close_tab', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('reload', {
+  title: 'Reload Page',
   icons: [{ src: 'https://api.iconify.design/mdi/reload.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Reload the active tab in the front Chrome window.',
   inputSchema: {},
@@ -276,6 +282,7 @@ server.registerTool('reload', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('go_back', {
+  title: 'Go Back',
   icons: [{ src: 'https://api.iconify.design/mdi/arrow-left.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Navigate back in history in the active tab of the front Chrome window.',
   inputSchema: {},
@@ -295,6 +302,7 @@ server.registerTool('go_back', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('go_forward', {
+  title: 'Go Forward',
   icons: [{ src: 'https://api.iconify.design/mdi/arrow-right.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Navigate forward in history in the active tab of the front Chrome window.',
   inputSchema: {},
@@ -314,6 +322,7 @@ server.registerTool('go_forward', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('new_window', {
+  title: 'New Window',
   icons: [{ src: 'https://api.iconify.design/mdi/window-maximize.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a new Chrome window, optionally navigating to a URL.',
   inputSchema: {
@@ -335,6 +344,7 @@ server.registerTool('new_window', {
 // ── Layer 2: CDP tools ────────────────────────────────────────────────────────
 
 server.registerTool('enable_cdp', {
+  title: 'Enable Remote Debugging',
   icons: [{ src: 'https://api.iconify.design/mdi/bug.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Launch a CDP-enabled Chrome window for JS execution and page inspection.
 Opens a separate Chrome instance (profile at /tmp/chrome-cdp) alongside the user's regular Chrome.
@@ -385,6 +395,7 @@ After this, use navigate to load a page, then execute_javascript / get_page_sour
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_debug_status', {
+  title: 'Debugging Status',
   icons: [{ src: 'https://api.iconify.design/mdi/bug-check.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Check if CDP is available. Returns {available, browser, tab_count} or {available: false}. Call enable_cdp to start it.',
   inputSchema: {},
@@ -417,6 +428,7 @@ server.registerTool('get_debug_status', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('navigate', {
+  title: 'Navigate',
   icons: [{ src: 'https://api.iconify.design/mdi/navigation.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Navigate the CDP Chrome window to a URL. Call enable_cdp first if needed.',
   inputSchema: {
@@ -441,6 +453,7 @@ server.registerTool('navigate', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('execute_javascript', {
+  title: 'Run JavaScript',
   icons: [{ src: 'https://api.iconify.design/mdi/language-javascript.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: `Run JavaScript in the active CDP Chrome tab and return the result.
 Call enable_cdp first, then navigate to the page you want to inspect.
@@ -471,6 +484,7 @@ Example: expression="document.querySelectorAll('a').length" → 42`,
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_source', {
+  title: 'Page Source',
   icons: [{ src: 'https://api.iconify.design/mdi/code-tags.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the full HTML source of the active CDP Chrome tab. Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
@@ -494,6 +508,7 @@ server.registerTool('get_page_source', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_page_text', {
+  title: 'Page Text',
   icons: [{ src: 'https://api.iconify.design/mdi/text.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the readable text content of the active CDP Chrome tab (strips HTML). Call enable_cdp first, then navigate to the target page.',
   inputSchema: {},
@@ -517,6 +532,7 @@ server.registerTool('get_page_text', {
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('take_screenshot', {
+  title: 'Take Screenshot',
   icons: [{ src: 'https://api.iconify.design/mdi/monitor-screenshot.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Capture a screenshot of the active CDP Chrome tab as a base64-encoded PNG. Call enable_cdp first.',
   inputSchema: {

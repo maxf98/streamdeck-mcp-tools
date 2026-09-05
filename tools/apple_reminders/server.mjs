@@ -79,6 +79,7 @@ function parseReminders(raw) {
 // ── tools ─────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_lists', {
+  title: 'List Reminder Lists',
   icons: [{ src: 'https://api.iconify.design/mdi/format-list-bulleted.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all reminder lists in Apple Reminders. Returns [{name, id, reminder_count}].',
   inputSchema: {},
@@ -110,6 +111,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('list_reminders', {
+  title: 'List Reminders',
   icons: [{ src: 'https://api.iconify.design/mdi/format-list-checks.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List reminders, optionally filtered by list. Returns [{name, id, list_name, due_date, completed, priority, notes}].',
   inputSchema: {
@@ -195,6 +197,7 @@ end tell`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('create_reminder', {
+  title: 'Create Reminder',
   icons: [{ src: 'https://api.iconify.design/mdi/bell-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Create a new reminder in Apple Reminders. Returns {id, name, list_name}.',
   inputSchema: {
@@ -238,6 +241,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('complete_reminder', {
+  title: 'Complete Reminder',
   icons: [{ src: 'https://api.iconify.design/mdi/check-circle.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Mark a reminder as completed.',
   inputSchema: {
@@ -270,6 +274,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('uncomplete_reminder', {
+  title: 'Reopen Reminder',
   icons: [{ src: 'https://api.iconify.design/mdi/restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Mark a completed reminder as incomplete.',
   inputSchema: {
@@ -302,6 +307,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('delete_reminder', {
+  title: 'Delete Reminder',
   icons: [{ src: 'https://api.iconify.design/mdi/delete.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Delete a reminder by name. This is permanent.',
   inputSchema: {
@@ -335,6 +341,7 @@ end tell`);
 // ─────────────────────────────────────────────────────────────────────────────
 
 server.registerTool('search_reminders', {
+  title: 'Search Reminders',
   icons: [{ src: 'https://api.iconify.design/mdi/text-search.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Search reminders by name or notes across all lists.',
   inputSchema: {

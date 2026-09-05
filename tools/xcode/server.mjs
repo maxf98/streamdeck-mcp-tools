@@ -713,6 +713,7 @@ const WAIT_INPUT = {
 };
 
 server.registerTool('build', {
+  title: 'Build',
   icons: [{ src: 'https://api.iconify.design/mdi/hammer.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Build the active scheme of the active Xcode workspace (⌘B). Returns {status, completed, errors, warnings, issues}. With wait=false (default) it returns immediately after starting.',
   inputSchema: { ...WAIT_INPUT },
@@ -723,6 +724,7 @@ server.registerTool('build', {
 });
 
 server.registerTool('run', {
+  title: 'Run',
   icons: [{ src: 'https://api.iconify.design/mdi/play.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Run the active scheme (⌘R) — builds then launches. Returns {status, completed, errors, warnings, issues}.',
   inputSchema: {
@@ -739,6 +741,7 @@ server.registerTool('run', {
 });
 
 server.registerTool('test', {
+  title: 'Test',
   icons: [{ src: 'https://api.iconify.design/mdi/test-tube.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Run the active scheme\'s tests (⌘U). Returns {status, completed, test_failures, issues} — each test failure carries its message, file and line.',
   inputSchema: {
@@ -755,6 +758,7 @@ server.registerTool('test', {
 });
 
 server.registerTool('clean', {
+  title: 'Clean',
   icons: [{ src: 'https://api.iconify.design/mdi/broom.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Clean the active scheme\'s build folder (⇧⌘K). Returns {status, completed}.',
   inputSchema: { ...WAIT_INPUT },
@@ -765,6 +769,7 @@ server.registerTool('clean', {
 });
 
 server.registerTool('stop', {
+  title: 'Stop',
   icons: [{ src: 'https://api.iconify.design/mdi/stop.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Stop the running scheme action or debug session (⌘.). Returns {stopped}.',
   inputSchema: {},
@@ -776,6 +781,7 @@ server.registerTool('stop', {
 });
 
 server.registerTool('debug', {
+  title: 'Debug',
   icons: [{ src: 'https://api.iconify.design/mdi/bug.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Start a debug session, optionally overriding the scheme and run destination for this launch only. '
     + 'This is also the ONLY reliable way to target a specific destination: Xcode\'s `active run destination` property '
@@ -799,6 +805,7 @@ server.registerTool('debug', {
 });
 
 server.registerTool('attach', {
+  title: 'Attach to Process',
   icons: [{ src: 'https://api.iconify.design/mdi/link-variant.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Attach Xcode\'s debugger to an already-running process by pid. Returns {attached, pid}.',
   inputSchema: {
@@ -816,6 +823,7 @@ server.registerTool('attach', {
 // =============================================================================
 
 server.registerTool('get_build_status', {
+  title: 'Build Status',
   icons: [{ src: 'https://api.iconify.design/mdi/information-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the status of the most recent scheme action (build/run/test) without starting a new one: {status, running, errors, warnings, test_failures, scheme, workspace}. Cheap — safe to call on a button face refresh.',
   inputSchema: {},
@@ -839,6 +847,7 @@ server.registerTool('get_build_status', {
 });
 
 server.registerTool('get_issues', {
+  title: 'Build Issues',
   icons: [{ src: 'https://api.iconify.design/mdi/alert-circle-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the errors, warnings, analyzer issues and test failures from the last scheme action, each with message, file path, line and column. Use this after a failed build to see what broke.',
   inputSchema: {
@@ -896,6 +905,7 @@ return out
 });
 
 server.registerTool('get_build_log', {
+  title: 'Build Log',
   icons: [{ src: 'https://api.iconify.design/mdi/text-box-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the raw build log text of the last scheme action. Logs run to hundreds of KB, so this returns the TAIL by default — set head=true for the beginning.',
   inputSchema: {
@@ -938,6 +948,7 @@ return (L as text) & "${US}" & slice
 // =============================================================================
 
 server.registerTool('get_workspace', {
+  title: 'Active Workspace',
   icons: [{ src: 'https://api.iconify.design/mdi/folder-open-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Get the active workspace/project: {name, path, scheme, destination, status, errors, warnings}.',
   inputSchema: {},
@@ -960,6 +971,7 @@ server.registerTool('get_workspace', {
 });
 
 server.registerTool('list_workspaces', {
+  title: 'List Workspaces',
   icons: [{ src: 'https://api.iconify.design/mdi/format-list-bulleted-square.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List all workspace/project documents currently open in Xcode, flagging the active one.',
   inputSchema: {},
@@ -1001,6 +1013,7 @@ return out
 });
 
 server.registerTool('open_workspace', {
+  title: 'Open Workspace',
   icons: [{ src: 'https://api.iconify.design/mdi/folder-open.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a .xcodeproj, .xcworkspace, Package.swift or folder in Xcode (launching Xcode if needed) and wait for it to finish loading. Returns {name, path, loaded}.',
   inputSchema: {
@@ -1054,6 +1067,7 @@ end tell`, 80000, { allowLaunch: true });
 });
 
 server.registerTool('list_schemes', {
+  title: 'List Schemes',
   icons: [{ src: 'https://api.iconify.design/mdi/view-list.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List the schemes of the active workspace, flagging the active one. Use with set_scheme or the scheme dial.',
   inputSchema: {},
@@ -1087,6 +1101,7 @@ return activeName & "${RS}${RS}" & out
 });
 
 server.registerTool('set_scheme', {
+  title: 'Set Scheme',
   icons: [{ src: 'https://api.iconify.design/mdi/swap-horizontal.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Set the active scheme of the active workspace by name (the scheme subsequent build/run/test actions use). Returns {scheme}.',
   inputSchema: { scheme: z.string().describe('Scheme name, exactly as shown by list_schemes.') },
@@ -1107,6 +1122,7 @@ return my orNull(name of active scheme of aw)
 });
 
 server.registerTool('list_destinations', {
+  title: 'List Destinations',
   icons: [{ src: 'https://api.iconify.design/mdi/cellphone-link.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List the run destinations available to the active workspace (devices, simulators, My Mac), each with architecture, platform and a ready-to-use destination specifier for set_destination / debug. '
     + 'Note: Xcode does not report which destination is active (the AppleScript property is broken in Xcode 26.x) — get_workspace reports the one saved by set_destination instead.',
@@ -1199,6 +1215,7 @@ function buildSpecifier({ platform, arch, devName, devId, generic }) {
 }
 
 server.registerTool('set_destination', {
+  title: 'Set Destination',
   icons: [{ src: 'https://api.iconify.design/mdi/target.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Remember a run destination for later debug calls, by destination name (from list_destinations) or an explicit specifier. '
     + 'IMPORTANT: this does NOT change the destination shown in Xcode\'s toolbar — Xcode\'s `active run destination` property cannot be written via AppleScript (broken in Xcode 26.x). '
@@ -1253,6 +1270,7 @@ return out
 // =============================================================================
 
 server.registerTool('list_targets', {
+  title: 'List Targets',
   icons: [{ src: 'https://api.iconify.design/mdi/target-variant.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List the projects in the active workspace with their targets and build configurations (Debug/Release/…).',
   inputSchema: {},
@@ -1301,6 +1319,7 @@ return out
 });
 
 server.registerTool('get_build_settings', {
+  title: 'Build Settings',
   icons: [{ src: 'https://api.iconify.design/mdi/cog-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Read build settings for a project or target configuration. A configuration resolves ~1500 settings, so a name filter is strongly recommended (e.g. filter="PRODUCT_" or "SWIFT"). Set resolved=true for fully-resolved values rather than the ones explicitly set in the config.',
   inputSchema: {
@@ -1415,6 +1434,7 @@ const MATCH_BY_PATH_OR_NAME = (target) =>
   `((my orNull(path of d) is equal to ${target}) or ((name of d) is equal to ${target}))`;
 
 server.registerTool('open_file', {
+  title: 'Open File',
   icons: [{ src: 'https://api.iconify.design/mdi/file-document-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Open a file in Xcode\'s editor, optionally scrolling to a line (and selecting it). Great for jumping straight to a build error from a button. Returns {path, name, line}.',
   inputSchema: {
@@ -1466,6 +1486,7 @@ end tell`, 40000, { allowLaunch: true });
 });
 
 server.registerTool('list_open_documents', {
+  title: 'Open Documents',
   icons: [{ src: 'https://api.iconify.design/mdi/file-multiple-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List the editor documents open in Xcode (excluding workspaces), with modified state and the selected line.',
   inputSchema: {},
@@ -1512,6 +1533,7 @@ end tell`, 30000);
 });
 
 server.registerTool('get_document_text', {
+  title: 'Read Document',
   icons: [{ src: 'https://api.iconify.design/mdi/text-box-search-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Read the text of an open editor document — the live BUFFER, so it includes unsaved edits (that\'s the point; read the file from disk otherwise). Identify it by absolute path or file name. '
     + 'Pass start_line/end_line to read just a range, which is what you usually want after get_issues hands you a file and a line.',
@@ -1591,6 +1613,7 @@ server.registerTool('get_document_text', {
 });
 
 server.registerTool('set_document_text', {
+  title: 'Write Document',
   icons: [{ src: 'https://api.iconify.design/mdi/file-edit-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Replace the entire text of an open editor document. This edits the BUFFER, leaving the document dirty — pass save=true to write it to disk. Destructive: the previous contents are gone (undo still works in the Xcode UI).',
   inputSchema: {
@@ -1615,6 +1638,7 @@ server.registerTool('set_document_text', {
 });
 
 server.registerTool('save_documents', {
+  title: 'Save Documents',
   icons: [{ src: 'https://api.iconify.design/mdi/content-save.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Save open editor documents that have unsaved changes (⌘S / Save All). Returns {saved: [names]}.',
   inputSchema: {
@@ -1670,6 +1694,7 @@ function xcrun(args, timeoutMs = 60000) {
 }
 
 server.registerTool('list_simulators', {
+  title: 'List Simulators',
   icons: [{ src: 'https://api.iconify.design/mdi/cellphone-cog.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List available iOS/tvOS/watchOS/visionOS simulators with their boot state and runtime, via simctl. Use booted=true to see only running ones.',
   inputSchema: {
@@ -1706,6 +1731,7 @@ server.registerTool('list_simulators', {
 });
 
 server.registerTool('boot_simulator', {
+  title: 'Boot Simulator',
   icons: [{ src: 'https://api.iconify.design/mdi/cellphone-play.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Boot a simulator by name or UDID and open the Simulator app. Idempotent — an already-booted simulator is reported as such rather than erroring.',
   inputSchema: {
@@ -1733,6 +1759,7 @@ server.registerTool('boot_simulator', {
 });
 
 server.registerTool('shutdown_simulator', {
+  title: 'Shut Down Simulator',
   icons: [{ src: 'https://api.iconify.design/mdi/cellphone-off.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'Shut down a simulator by name or UDID, or all booted simulators with all=true.',
   inputSchema: {
@@ -1770,6 +1797,7 @@ async function resolveSimulator(needle) {
 }
 
 server.registerTool('list_devices', {
+  title: 'List Devices',
   icons: [{ src: 'https://api.iconify.design/mdi/cellphone-link.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description: 'List physical devices paired for development (iPhone/iPad/…) with their connection state, via devicectl.',
   inputSchema: {},

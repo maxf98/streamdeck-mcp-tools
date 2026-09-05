@@ -109,6 +109,18 @@ function timeoutFor(name) {
     return 60000;
 }
 
+// The other packs declare a hand-written `title` per tool. Not here: these ~130
+// tools are VENDORED (names and descriptions come from upstream), so hand-titling
+// them would be a fork of someone else's naming that drifts on the next sync.
+// Title-casing the wire name is all a client would do with a title-less tool
+// anyway — doing it here just means every client gets it, not only our UI.
+const ACRONYMS = { ai: 'AI', csv: 'CSV', hdr: 'HDR', jpg: 'JPG', png: 'PNG', psd: 'PSD', rgb: 'RGB', srgb: 'sRGB', svg: 'SVG', ui: 'UI', url: 'URL' };
+function titleFor(name) {
+    return name.split('_').filter(Boolean)
+        .map(w => ACRONYMS[w] ?? w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ') || name;
+}
+
 const registered = [];
 
 for (const def of collectTools(connection)) {
@@ -116,6 +128,7 @@ for (const def of collectTools(connection)) {
     const inputSchema = toZodShape(def.tool.inputSchema ?? { type: 'object', properties: {} }, name);
 
     server.registerTool(name, {
+        title: def.tool.title ?? titleFor(name),
         description: def.tool.description,
         icons: iconFor(name),
         inputSchema,
@@ -156,6 +169,7 @@ function withTimeout(promise, ms, name) {
 // ── Connection tools (upstream defined these in its server core) ─────────────
 
 server.registerTool('ping', {
+    title: 'Ping Photoshop',
     description:
         'Check whether Photoshop is installed, running and reachable. Cheap and safe to ' +
         'call first — returns { installed, running, version, path } rather than failing ' +
@@ -179,6 +193,7 @@ server.registerTool('ping', {
 });
 
 server.registerTool('get_version', {
+    title: 'Photoshop Version',
     description: "Photoshop's version string (e.g. \"26.3.0\"), or an error if it isn't running.",
     icons: iconFor('get_version'),
     inputSchema: {},
