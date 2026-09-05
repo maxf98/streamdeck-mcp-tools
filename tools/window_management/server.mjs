@@ -236,8 +236,10 @@ server.registerTool('get_windows',
         app_name: z.string(),
         title: z.string().nullable(),
         index: z.number(),
-        x: z.number(), y: z.number(),
-        width: z.number(), height: z.number(),
+        // null for a window that won't report geometry (e.g. mid fullscreen transition).
+        x: z.number().nullable(), y: z.number().nullable(),
+        width: z.number().nullable(), height: z.number().nullable(),
+        fullscreen: z.boolean().describe('True for a native-fullscreen window (living in its own Mission Control space).'),
       })),
     },
   },
@@ -252,17 +254,26 @@ server.registerTool('get_windows',
         const appName = proc.name();
         for (let i = 0; i < proc.windows.length; i++) {
           const w = proc.windows[i];
-          try {
-            const pos = w.position();
-            const size = w.size();
-            result.push({
-              app_name: appName,
-              title: (() => { try { return w.name(); } catch { return null; } })(),
-              index: i + 1,
-              x: pos[0], y: pos[1],
-              width: size[0], height: size[1],
-            });
-          } catch { /* window may not have position/size */ }
+          // Geometry is read defensively PER FIELD: a window that won't report its
+          // position/size used to be dropped from the list entirely, which made a
+          // window invisible to callers rather than merely under-described. Report
+          // it with null geometry instead — it still exists, and its index is what
+          // the other tools here address it by.
+          const pos = (() => { try { return w.position(); } catch { return null; } })();
+          const size = (() => { try { return w.size(); } catch { return null; } })();
+          result.push({
+            app_name: appName,
+            title: (() => { try { return w.name(); } catch { return null; } })(),
+            index: i + 1,
+            x: pos ? pos[0] : null, y: pos ? pos[1] : null,
+            width: size ? size[0] : null, height: size ? size[1] : null,
+            // Fullscreen is NOT inferable from geometry by a caller: a fullscreen
+            // window reports the screen's full size on one display and its visible
+            // frame on another, so only AXFullScreen answers it.
+            fullscreen: (() => {
+              try { return !!w.attributes.byName('AXFullScreen').value(); } catch { return false; }
+            })(),
+          });
         }
       }
       return result;
@@ -317,17 +328,95 @@ server.registerTool('activate_application',
 server.registerTool('close_window',
   {
     icons: [{ src: 'https://api.iconify.design/mdi/window-close.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Close a specific window of an application.',
+    description: 'Close a specific window of an application. A native-fullscreen window has no close button while fullscreen, so it is brought forward (switching to its Mission Control space), taken out of fullscreen and closed — then whichever app was frontmost before is reactivated.',
     inputSchema: WINDOW_INPUT,
     outputSchema: SUCCESS_OUTPUT,
   },
   async ({ application, window_index = 1 }) => {
     const idx = window_index - 1;
-    await run((app, i) => {
-      const proc = Application('System Events').processes.whose({ name: app })[0];
-      proc.windows[i].buttons.whose({ subrole: 'AXCloseButton' })[0].click();
+    const { left_fullscreen, restored_app } = await run((app, i) => {
+      ObjC.import('Foundation');
+      const se = Application('System Events');
+      const proc = se.processes.whose({ name: app })[0];
+      const sleep = (seconds) => $.NSThread.sleepForTimeInterval(seconds);
+
+      const closeButtonOf = (win) => {
+        try {
+          const buttons = win.buttons.whose({ subrole: 'AXCloseButton' })();
+          return buttons.length ? buttons[0] : null;
+        } catch { return null; }
+      };
+      const titleOf = (win) => { try { return win.name(); } catch { return null; } };
+      const activate = (name) => {
+        // Going through the PROCESS avoids Application(name) failing on a process
+        // whose name isn't the scriptable app name.
+        try { se.processes.byName(name).frontmost = true; return true; }
+        catch { try { Application(name).activate(); return true; } catch { return false; } }
+      };
+
+      let win = proc.windows[i];
+      const title = titleOf(win);
+      // Leaving fullscreen reorders the window list, and an index can go stale
+      // entirely, so re-find the window by title whenever it stops matching.
+      const reresolve = () => {
+        if (title === null || titleOf(win) === title) return;
+        for (let j = 0; j < proc.windows.length; j++) {
+          if (titleOf(proc.windows[j]) === title) { win = proc.windows[j]; return; }
+        }
+      };
+
+      const wasFullscreen = (() => {
+        try { return !!win.attributes.byName('AXFullScreen').value(); } catch { return false; }
+      })();
+      let previousApp = null;
+
+      // A fullscreen window has NO traffic-light buttons at all — its title bar is
+      // auto-hidden — so clicking AXCloseButton failed with "Invalid index. (-1719)".
+      // Leaving fullscreen fixes that, but only for a window whose space is ACTIVE:
+      // on any other space the title bar never comes back and the button never
+      // appears. So bring the app forward (macOS switches to the window's space),
+      // close it there, and hand focus back to where it was.
+      if (wasFullscreen) {
+        const frontmost = (() => { try { return se.processes.whose({ frontmost: true })[0].name(); } catch { return null; } })();
+        if (frontmost && frontmost !== app) previousApp = frontmost;
+        activate(app);
+        sleep(0.6);   // the space switch is animated
+        reresolve();
+        try { win.attributes.byName('AXFullScreen').value = false; } catch { /* checked below */ }
+        for (let tries = 0; tries < 40 && !closeButtonOf(win); tries++) {
+          sleep(0.1);
+          reresolve();
+        }
+      }
+
+      const button = closeButtonOf(win);
+      if (!button) {
+        // Don't leave the window silently un-fullscreened, or the focus moved, by a
+        // close that failed.
+        if (wasFullscreen) {
+          try { win.attributes.byName('AXFullScreen').value = true; } catch { /* best effort */ }
+          if (previousApp) activate(previousApp);
+        }
+        throw new Error(`window ${i + 1} of ${app} has no close button`);
+      }
+      button.click();
+
+      let restored = null;
+      if (previousApp) {
+        // Closing a fullscreen window collapses its space, so macOS decides where
+        // focus lands. Put it back where it was.
+        sleep(0.5);
+        if (activate(previousApp)) restored = previousApp;
+      }
+      return { left_fullscreen: wasFullscreen, restored_app: restored };
     }, application, idx);
-    return sc({ success: true, message: `Closed window ${window_index} of ${application}` });
+    const what = left_fullscreen
+      ? `Left fullscreen and closed window ${window_index} of ${application}`
+      : `Closed window ${window_index} of ${application}`;
+    return sc({
+      success: true,
+      message: restored_app ? `${what}; reactivated ${restored_app}` : what,
+    });
   }
 );
 
