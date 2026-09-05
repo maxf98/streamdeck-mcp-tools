@@ -205,6 +205,7 @@ const server = new McpServer({ name: 'window-management', version: '1.0.0' });
 
 server.registerTool('get_running_applications',
   {
+    title: 'List Running Apps',
     icons: [{ src: 'https://api.iconify.design/mdi/apps.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get the currently running GUI applications, ordered stably by name, with the frontmost one flagged. `active_index` is the frontmost app\'s position in `applications` (the ordering the app-switcher dial/key navigate).',
     inputSchema: {},
@@ -226,6 +227,7 @@ server.registerTool('get_running_applications',
 
 server.registerTool('get_windows',
   {
+    title: 'List Windows',
     icons: [{ src: 'https://api.iconify.design/mdi/window-restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get a list of open windows, optionally filtered by application name.',
     inputSchema: {
@@ -286,6 +288,7 @@ server.registerTool('get_windows',
 
 server.registerTool('get_frontmost_application',
   {
+    title: 'Frontmost App',
     icons: [{ src: 'https://api.iconify.design/mdi/application.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get the name and window title of the frontmost (active) application.',
     inputSchema: {},
@@ -312,6 +315,7 @@ server.registerTool('get_frontmost_application',
 
 server.registerTool('activate_application',
   {
+    title: 'Activate App',
     icons: [{ src: 'https://api.iconify.design/mdi/open-in-app.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Bring an application to the front (activate it).',
     inputSchema: { application: z.string() },
@@ -327,6 +331,7 @@ server.registerTool('activate_application',
 
 server.registerTool('close_window',
   {
+    title: 'Close Window',
     icons: [{ src: 'https://api.iconify.design/mdi/window-close.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Close a specific window of an application. A native-fullscreen window has no close button while fullscreen, so it is brought forward (switching to its Mission Control space), taken out of fullscreen and closed — then whichever app was frontmost before is reactivated.',
     inputSchema: WINDOW_INPUT,
@@ -424,6 +429,7 @@ server.registerTool('close_window',
 
 server.registerTool('move_window',
   {
+    title: 'Move Window',
     icons: [{ src: 'https://api.iconify.design/mdi/arrow-all.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Move a window to a specific position on screen.',
     inputSchema: {
@@ -445,6 +451,7 @@ server.registerTool('move_window',
 
 server.registerTool('resize_window',
   {
+    title: 'Resize Window',
     icons: [{ src: 'https://api.iconify.design/mdi/resize.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Resize a window to specific dimensions.',
     inputSchema: {
@@ -466,6 +473,7 @@ server.registerTool('resize_window',
 
 server.registerTool('minimize_window',
   {
+    title: 'Minimise Window',
     icons: [{ src: 'https://api.iconify.design/mdi/window-minimize.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Minimize a window to the Dock.',
     inputSchema: WINDOW_INPUT,
@@ -483,6 +491,7 @@ server.registerTool('minimize_window',
 
 server.registerTool('fullscreen_window',
   {
+    title: 'Fullscreen Window',
     icons: [{ src: 'https://api.iconify.design/mdi/fullscreen.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Toggle native fullscreen for a window (enters a separate Mission Control space). Use zoom_window to maximize without leaving the current space.',
     inputSchema: WINDOW_INPUT,
@@ -502,6 +511,7 @@ server.registerTool('fullscreen_window',
 
 server.registerTool('zoom_window',
   {
+    title: 'Zoom Window',
     icons: [{ src: 'https://api.iconify.design/mdi/magnify-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Maximize (zoom) a window to fill a screen without entering fullscreen mode.',
     inputSchema: {
@@ -531,6 +541,7 @@ server.registerTool('zoom_window',
 
 server.registerTool('get_screen_size',
   {
+    title: 'Main Screen Size',
     icons: [{ src: 'https://api.iconify.design/mdi/monitor.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get the screen dimensions of the main display.',
     inputSchema: {},
@@ -550,6 +561,7 @@ server.registerTool('get_screen_size',
 
 server.registerTool('get_screens',
   {
+    title: 'List Screens',
     icons: [{ src: 'https://api.iconify.design/mdi/monitor-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get dimensions and positions of all connected displays.',
     inputSchema: {},
@@ -593,6 +605,7 @@ server.registerTool('get_screens',
 
 server.registerTool('get_window_screen',
   {
+    title: 'Window\'s Screen',
     icons: [{ src: 'https://api.iconify.design/mdi/monitor.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get which screen a window is currently on, by comparing the window position against all screen frames.',
     inputSchema: WINDOW_INPUT,
@@ -638,6 +651,7 @@ server.registerTool('get_window_screen',
 
 server.registerTool('open_url',
   {
+    title: 'Open URL',
     icons: [{ src: 'https://api.iconify.design/mdi/open-in-new.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Open a URL in a browser. Opens in a new tab if browser is already running.',
     inputSchema: {
@@ -680,6 +694,7 @@ server.registerTool('open_url',
 
 server.registerTool('get_browser_tabs',
   {
+    title: 'List Browser Tabs',
     icons: [{ src: 'https://api.iconify.design/mdi/tab.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get all open tabs across all windows in the specified browser.',
     inputSchema: {
@@ -729,6 +744,7 @@ server.registerTool('get_browser_tabs',
 
 server.registerTool('close_browser_tab',
   {
+    title: 'Close Browser Tab',
     icons: [{ src: 'https://api.iconify.design/mdi/tab-minus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Close a specific browser tab.',
     inputSchema: {
@@ -758,6 +774,7 @@ server.registerTool('close_browser_tab',
 
 server.registerTool('get_active_tab_info',
   {
+    title: 'Active Browser Tab',
     icons: [{ src: 'https://api.iconify.design/mdi/tab.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get the title and URL of the active (frontmost) browser tab.',
     inputSchema: {
@@ -786,6 +803,7 @@ server.registerTool('get_active_tab_info',
 
 server.registerTool('get_spaces',
   {
+    title: 'List Spaces',
     icons: [{ src: 'https://api.iconify.design/mdi/view-grid.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get information about all Mission Control desktops/spaces.',
     inputSchema: {},
@@ -812,6 +830,7 @@ server.registerTool('get_spaces',
 
 server.registerTool('get_current_space',
   {
+    title: 'Current Space',
     icons: [{ src: 'https://api.iconify.design/mdi/view-grid-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Get the current desktop/space number and details.',
     inputSchema: {},
@@ -833,6 +852,7 @@ server.registerTool('get_current_space',
 
 server.registerTool('launch_application',
   {
+    title: 'Launch App',
     icons: [{ src: 'https://api.iconify.design/mdi/rocket-launch.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Launch an application by name. If already running, brings it to the front.',
     inputSchema: { application: z.string() },
@@ -848,6 +868,7 @@ server.registerTool('launch_application',
 
 server.registerTool('open_file',
   {
+    title: 'Open File',
     icons: [{ src: 'https://api.iconify.design/mdi/file-document-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Open a file, optionally with a specific application.',
     inputSchema: {
