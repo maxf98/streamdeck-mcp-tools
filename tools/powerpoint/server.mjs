@@ -593,6 +593,8 @@ const SELECTION_SCHEMA = {
 server.registerResource(
   'Open presentation', URI_PRESENTATION,
   {
+    title: 'Open Presentation',
+    icons: [{ src: 'https://api.iconify.design/mdi/file-presentation-box.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'The open PowerPoint presentation: name, path, slide count, current slide + its title, unsaved-changes flag, and live slide-show state (running, position, elapsed seconds). Bind a key or dial to this to show deck position on the hardware.',
     mimeType: 'application/json',
     _meta: { 'io.streamdeck/resourceSchema': PRESENTATION_SCHEMA },
@@ -613,6 +615,8 @@ server.registerResource(
 server.registerResource(
   'Live selection', URI_SELECTION,
   {
+    title: 'Live Selection',
+    icons: [{ src: 'https://api.iconify.design/mdi/select-place.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'What is selected right now in PowerPoint: selection kind, slide index, and for each selected shape its name, type, position, size, rotation, text and font. This is the thing a file-based tool cannot see. Bind a face to it to react to the user\'s selection.',
     mimeType: 'application/json',
     _meta: { 'io.streamdeck/resourceSchema': SELECTION_SCHEMA },
@@ -659,11 +663,25 @@ const UI_VIEWS = {
   },
 };
 
+// A surface's icon follows what it IS — a key, a dial or a popup — which is the
+// distinction a user browsing a server's resources actually needs. `v.name` was
+// authored above and never reached the wire: registerResource takes the slug as
+// its `name` (a stable identifier), so the human label goes in `title`.
+const SURFACE_ICONS = {
+  key: 'gesture-tap-button',
+  encoder: 'tune-vertical',
+  popup: 'dock-window',
+};
+function surfaceIcons(meta) {
+  const slug = SURFACE_ICONS[Object.keys(meta ?? {})[0]] ?? 'view-dashboard-outline';
+  return [{ src: `https://api.iconify.design/mdi/${slug}.svg`, mimeType: 'image/svg+xml', sizes: ['any'] }];
+}
+
 for (const [uri, v] of Object.entries(UI_VIEWS)) {
   server.registerResource(
     uri.replace('ui://', '').replace(/\//g, '-'),
     uri,
-    { description: v.description, mimeType: APP_MIME, _meta: { [SURFACE_NS]: v.meta } },
+    { title: v.name, description: v.description, icons: surfaceIcons(v.meta), mimeType: APP_MIME, _meta: { [SURFACE_NS]: v.meta } },
     async (u) => ({
       contents: [{
         uri: u.href,

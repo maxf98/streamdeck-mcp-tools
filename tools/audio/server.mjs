@@ -504,7 +504,7 @@ const DEVICES_SCHEMA = {
 
 server.registerResource(
     "System Output Volume", URI_OUTPUT,
-    { description: "Default output device volume (0–100) and mute state.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
+    { title: "Output Volume", description: "Default output device volume (0–100) and mute state.", icons: [{ src: "https://api.iconify.design/mdi/volume-high.svg", mimeType: "image/svg+xml", sizes: ["any"] }], mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, outState ?? makeVolSnapshot(0, false)) };
@@ -513,7 +513,7 @@ server.registerResource(
 
 server.registerResource(
     "System Input Volume", URI_INPUT,
-    { description: "Default input (microphone) volume (0–100) and mute state.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
+    { title: "Input Volume", description: "Default input (microphone) volume (0–100) and mute state.", icons: [{ src: "https://api.iconify.design/mdi/microphone.svg", mimeType: "image/svg+xml", sizes: ["any"] }], mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": VOL_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, inState ?? makeVolSnapshot(0, false)) };
@@ -522,7 +522,7 @@ server.registerResource(
 
 server.registerResource(
     "Audio Devices", URI_DEVICES,
-    { description: "All audio devices and the current default input/output device.", mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": DEVICES_SCHEMA } },
+    { title: "Audio Devices", description: "All audio devices and the current default input/output device.", icons: [{ src: "https://api.iconify.design/mdi/speaker-multiple.svg", mimeType: "image/svg+xml", sizes: ["any"] }], mimeType: "application/json", _meta: { "io.streamdeck/resourceSchema": DEVICES_SCHEMA } },
     async (uri) => {
         await ensurePrimed();
         return { contents: resourceContents(uri.href, deviceState ?? { output: "", input: "", devices: [] }) };
@@ -630,13 +630,13 @@ const POPUP_META = { [SURFACE_NS]: { popup: { resourceUri: URI_POPUP, mode: "on-
 
 server.registerResource(
     "Volume Dial", URI_DIAL,
-    { description: "A Stream Deck dial for output volume: rotate to adjust, press to mute.", mimeType: APP_MIME, _meta: DIAL_META },
+    { title: "Volume Dial", description: "A Stream Deck dial for output volume: rotate to adjust, press to mute.", icons: [{ src: "https://api.iconify.design/mdi/tune-vertical.svg", mimeType: "image/svg+xml", sizes: ["any"] }], mimeType: APP_MIME, _meta: DIAL_META },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: APP_MIME, text: surfaceEnvelope(DIAL_JSX, DIAL_META) }] }),
 );
 
 server.registerResource(
     "Volume Popup", URI_POPUP,
-    { description: "A volume slider popup for the default output device.", mimeType: APP_MIME, _meta: POPUP_META },
+    { title: "Volume Popup", description: "A volume slider popup for the default output device.", icons: [{ src: "https://api.iconify.design/mdi/dock-window.svg", mimeType: "image/svg+xml", sizes: ["any"] }], mimeType: APP_MIME, _meta: POPUP_META },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: APP_MIME, text: surfaceEnvelope(POPUP_JSX, POPUP_META) }] }),
 );
 

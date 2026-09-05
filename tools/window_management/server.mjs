@@ -925,7 +925,7 @@ const APPS_SCHEMA = {
 server.registerResource(
   'open-applications',
   URI_APPS,
-  { description: 'Ordered switchable GUI apps + the frontmost index — the live data the app-switcher surfaces bind to.', mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': APPS_SCHEMA } },
+  { title: 'Open Applications', description: 'Ordered switchable GUI apps + the frontmost index — the live data the app-switcher surfaces bind to.', icons: [{ src: 'https://api.iconify.design/mdi/apps.svg', mimeType: 'image/svg+xml', sizes: ['any'] }], mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': APPS_SCHEMA } },
   async () => {
     await ensurePrimed();
     return { contents: [{ uri: URI_APPS, mimeType: 'application/json', text: JSON.stringify(appsState) }] };
@@ -935,11 +935,25 @@ server.registerResource(
 // The three surface views. metadata carries the io.streamdeck/surfaces _meta on BOTH
 // the list descriptor (so the host classifies the surface from resources/list) and
 // the read envelope (jsx + _meta), matching what the host's resolveUiResource reads.
+// A surface's icon follows what it IS — a key, a dial or a popup — which is the
+// distinction a user browsing a server's resources actually needs. `v.name` was
+// authored above and never reached the wire: registerResource takes the slug as
+// its `name` (a stable identifier), so the human label goes in `title`.
+const SURFACE_ICONS = {
+  key: 'gesture-tap-button',
+  encoder: 'tune-vertical',
+  popup: 'dock-window',
+};
+function surfaceIcons(meta) {
+  const slug = SURFACE_ICONS[Object.keys(meta ?? {})[0]] ?? 'view-dashboard-outline';
+  return [{ src: `https://api.iconify.design/mdi/${slug}.svg`, mimeType: 'image/svg+xml', sizes: ['any'] }];
+}
+
 for (const [uri, v] of Object.entries(UI_VIEWS)) {
   server.registerResource(
     uri.replace('ui://', '').replace(/\//g, '-'),
     uri,
-    { description: v.description, mimeType: 'application/vnd.mcp-ui+json', _meta: { [SURFACE_NS]: v.meta } },
+    { title: v.name, description: v.description, icons: surfaceIcons(v.meta), mimeType: 'application/vnd.mcp-ui+json', _meta: { [SURFACE_NS]: v.meta } },
     async () => ({
       contents: [{
         uri,

@@ -313,13 +313,18 @@ server.registerResource(
       resources: allRecords().map((rec) => ({
         uri: procUri(rec.process_id),
         name: `Process ${rec.process_id}`,
+        // `title` is what a client shows; `name` stays the stable identifier. The
+        // command is the useful label for a live process — "Process a3f1" tells a
+        // human nothing about which of their four background jobs it is.
+        title: rec.command,
         description: `Live status of: ${rec.command}`,
+        icons: [{ src: 'https://api.iconify.design/mdi/console-network.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
         mimeType: 'application/json',
         _meta: { 'io.streamdeck/resourceSchema': PROC_STATUS_SCHEMA },
       })),
     }),
   }),
-  { description: 'Live { running, pid, command } status of a process started by start_process, by its handle.', _meta: { 'io.streamdeck/resourceSchema': PROC_STATUS_SCHEMA } },
+  { title: 'Background Process', description: 'Live { running, pid, command } status of a process started by start_process, by its handle.', icons: [{ src: 'https://api.iconify.design/mdi/console-network.svg', mimeType: 'image/svg+xml', sizes: ['any'] }], _meta: { 'io.streamdeck/resourceSchema': PROC_STATUS_SCHEMA } },
   async (uri, variables) => {
     const id = variables.process_id;
     const status = statusFor(id) ?? { process_id: id, running: false, pid: null, command: null, startedAt: null };

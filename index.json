@@ -39,7 +39,7 @@
             "id": "audio",
             "name": "Audio",
             "description": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
-            "version": "3.2.0",
+            "version": "3.3.0",
             "platform": [
                 "darwin"
             ],
@@ -60,7 +60,7 @@
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
-            "version": "1.7.0",
+            "version": "1.8.0",
             "platform": [
                 "darwin"
             ],
@@ -190,7 +190,7 @@
             "id": "photoshop",
             "name": "Photoshop",
             "description": "Drive Adobe Photoshop by script \u2014 100 tools covering documents, layers (create/order/transform/properties/masks), selections, text, filters, colour adjustments, layer styles, history, actions, data sets, image stacks, export/place, and the generative-AI family (fill, remove, expand, upscale, sky replacement, generate image). Includes 16 multi-step recipe tools that run a whole workflow (remove background, enhance portrait, frequency separation, batch watermark, CSV to cards\u2026) inside one suspended history state, so a single Undo reverts the lot. Works by running ExtendScript inside Photoshop over AppleScript's `do javascript`, with no plugin to install. Also exposes the active document's live state as a subscribable resource (resource://photoshop/document) plus key, dial and popup surfaces.",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "platform": [
                 "darwin"
             ],
@@ -214,7 +214,7 @@
             "id": "powerpoint",
             "name": "PowerPoint",
             "description": "Drive the open Microsoft PowerPoint presentation via AppleScript \u2014 read the live selection, restyle selected shapes and text, add text boxes and shapes, create/delete/duplicate/reorder slides, navigate the editor, and run the slide show as a presenter remote (start/exit, next/previous, jump to slide, elapsed time). Also exposes the open presentation and the live selection as subscribable resources (resource://powerpoint/presentation, resource://powerpoint/selection) plus key, dial and popup surfaces.",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "platform": [
                 "darwin"
             ],
@@ -314,7 +314,7 @@
             "id": "window_management",
             "name": "Window Management",
             "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
-            "version": "2.4.0",
+            "version": "2.5.0",
             "platform": [
                 "darwin"
             ],
@@ -337,7 +337,7 @@
             "id": "xcode",
             "name": "Xcode",
             "description": "Drive the running Xcode session via AppleScript \u2014 build, run, test, clean and stop the active scheme, read structured build errors/warnings/test failures, switch schemes, inspect projects/targets/build settings, open files and jump to a line. Also exposes the active workspace's live build state as a subscribable resource (resource://xcode/build) plus key, dial and popup surfaces.",
-            "version": "1.2.0",
+            "version": "1.3.0",
             "platform": [
                 "darwin"
             ],

@@ -279,6 +279,8 @@ async function readDocument() {
 server.registerResource(
     'Active Document', URI_DOCUMENT,
     {
+        title: 'Active Document',
+        icons: [{ src: 'https://api.iconify.design/mdi/image-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
         description: "The active document's live state — size, colour mode, layer count, selection and active layer.",
         mimeType: 'application/json',
         _meta: { 'io.streamdeck/resourceSchema': DOCUMENT_SCHEMA },
@@ -375,11 +377,27 @@ const SURFACES = {
     },
 };
 
+// A surface's icon follows what it IS — a key, a dial or a popup — which is the
+// distinction a user browsing a server's resources actually needs. The name is already
+// authored in SURFACES above; it goes in `title` (what a client shows) while
+// registerResource's first argument stays the identifier.
+const SURFACE_ICONS = {
+  key: 'gesture-tap-button',
+  encoder: 'tune-vertical',
+  popup: 'dock-window',
+};
+function surfaceIcons(meta) {
+  const slug = SURFACE_ICONS[Object.keys(meta ?? {})[0]] ?? 'view-dashboard-outline';
+  return [{ src: `https://api.iconify.design/mdi/${slug}.svg`, mimeType: 'image/svg+xml', sizes: ['any'] }];
+}
+
 for (const [uri, surface] of Object.entries(SURFACES)) {
     server.registerResource(
         surface.name, uri,
         {
+            title: surface.name,
             description: surface.description,
+            icons: surfaceIcons(surface.surfaces),
             mimeType: APP_MIME,
             _meta: { [SURFACE_NS]: surface.surfaces },
         },

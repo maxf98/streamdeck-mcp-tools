@@ -444,6 +444,8 @@ const WORKSPACE_SCHEMA = {
 server.registerResource(
   'Build state', URI_BUILD,
   {
+    title: 'Build State',
+    icons: [{ src: 'https://api.iconify.design/mdi/hammer-wrench.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'Live build state of the active Xcode workspace: status, running flag, and error/warning/test-failure counts. Bind a key or dial to this to show build state on the hardware.',
     mimeType: 'application/json',
     _meta: { 'io.streamdeck/resourceSchema': BUILD_SCHEMA },
@@ -457,6 +459,8 @@ server.registerResource(
 server.registerResource(
   'Active workspace', URI_WORKSPACE,
   {
+    title: 'Active Workspace',
+    icons: [{ src: 'https://api.iconify.design/mdi/folder-open.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
     description: 'The active Xcode workspace: name, path, active scheme, chosen run destination, and last action status.',
     mimeType: 'application/json',
     _meta: { 'io.streamdeck/resourceSchema': WORKSPACE_SCHEMA },
@@ -511,11 +515,25 @@ const UI_VIEWS = {
   },
 };
 
+// A surface's icon follows what it IS — a key, a dial or a popup — which is the
+// distinction a user browsing a server's resources actually needs. `v.name` was
+// authored above and never reached the wire: registerResource takes the slug as
+// its `name` (a stable identifier), so the human label goes in `title`.
+const SURFACE_ICONS = {
+  key: 'gesture-tap-button',
+  encoder: 'tune-vertical',
+  popup: 'dock-window',
+};
+function surfaceIcons(meta) {
+  const slug = SURFACE_ICONS[Object.keys(meta ?? {})[0]] ?? 'view-dashboard-outline';
+  return [{ src: `https://api.iconify.design/mdi/${slug}.svg`, mimeType: 'image/svg+xml', sizes: ['any'] }];
+}
+
 for (const [uri, v] of Object.entries(UI_VIEWS)) {
   server.registerResource(
     uri.replace('ui://', '').replace(/\//g, '-'),
     uri,
-    { description: v.description, mimeType: APP_MIME, _meta: { [SURFACE_NS]: v.meta } },
+    { title: v.name, description: v.description, icons: surfaceIcons(v.meta), mimeType: APP_MIME, _meta: { [SURFACE_NS]: v.meta } },
     async (u) => ({
       contents: [{
         uri: u.href,
