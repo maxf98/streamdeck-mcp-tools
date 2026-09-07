@@ -41,7 +41,7 @@ function Face({ data }) {
 
   // press → build, or stop if a build is already running (so one key does both).
   // The handler lives in the component and closes over `running` directly.
-  useKeyDown(function (_p, sd) {
+  useKeyPress(function (_p, sd) {
     if (!sd) return;
     if (running) return sd.callTool("xcode", "stop", {});
     return sd.callTool("xcode", "build", { wait: false });

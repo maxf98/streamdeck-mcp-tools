@@ -1,5 +1,5 @@
 // KEY surface — shows the frontmost app; press cycles to the next app in the ordered
-// list. Live in-component handler (surfaces v2): useKeyDown computes the next app from
+// list. Live in-component handler (surfaces v2): useKeyPress computes the next app from
 // the bound data and activates it directly — no cycle_app "controller" tool. `data`
 // is the live value of resource://windows/apps ({ applications, active_index }).
 window.__states = {
@@ -19,7 +19,7 @@ function Face({ data }) {
   const active = apps[idx] || null;
   // press → activate the NEXT app in the ordered list (wraps). The bound resource
   // repaints the face once the frontmost actually changes.
-  useKeyDown((_p, sd) => {
+  useKeyPress((_p, sd) => {
     const n = apps.length;
     if (!n || !sd) return;
     const next = apps[(idx + 1) % n];

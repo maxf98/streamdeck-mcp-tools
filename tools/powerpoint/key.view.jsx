@@ -29,7 +29,7 @@ function Face({ data }) {
 
   // press → advance. next_slide handles both modes itself, so there's nothing to
   // branch on here.
-  useKeyDown(function (_p, sd) {
+  useKeyPress(function (_p, sd) {
     if (!sd) return;
     return sd.callTool("powerpoint", "next_slide", {});
   });

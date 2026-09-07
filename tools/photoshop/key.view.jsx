@@ -36,7 +36,7 @@ function Face({ data }) {
 
   // press → export a preview beside the document. No-op with nothing open, rather
   // than firing a tool call that can only come back as an error.
-  useKeyDown(function (_p, sd) {
+  useKeyPress(function (_p, sd) {
     if (!sd || !hasDoc) return;
     return sd.callTool("photoshop", "get_preview", { max_dimension_px: 1024 });
   });

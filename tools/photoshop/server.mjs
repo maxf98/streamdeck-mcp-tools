@@ -354,7 +354,7 @@ server.server.setRequestHandler('resources/unsubscribe', async (req) => {
 // not a list of {type} objects — the host iterates the known surface keys, so an
 // array yields no surface at all (no button generated, no handles read, no event
 // injected). `handles` names the slots the view registers via in-component hooks
-// (useKeyDown/useDialRotate/…); it must match the view, or the host has no reason
+// (useKeyPress/useDialRotate/…); it must match the view, or the host has no reason
 // to inject the hardware event.
 const SURFACES = {
     [URI_UI_KEY]: {
