@@ -283,5 +283,5 @@ Unset the variable to return to the normal download-from-catalog behavior.
 | `photoshop` | macOS | Drive Adobe Photoshop by running ExtendScript inside it — 100 tools (documents, layers, selections, masks, text, filters, adjustments, export, generative fill/remove/expand/upscale) plus 16 one-Undo workflow recipes (key, dial and popup surfaces) |
 | `voice` | macOS | Record microphone audio (Stream Deck key + on-screen recorder popup as UI resources); saves a WebM file for transcription |
 | `vscode` | cross | Control VS Code via the streamdeck-vscode extension |
-| `window_management` | macOS | Move and resize windows across screens |
+| `window_management` | macOS | Move and resize windows across screens, addressed by stable per-window handles; live window list + app-switcher (key, dial and popup surfaces) as resources |
 | `xcode` | macOS | Drive the running Xcode session via AppleScript — build/run/test/clean, structured issues, schemes, build settings, editor and simulators (key, dial and popup surfaces) |
