@@ -313,8 +313,8 @@
         {
             "id": "window_management",
             "name": "Window Management",
-            "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused, and the live window list is a subscribable resource. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
-            "version": "2.6.0",
+            "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused, and the live window list is a subscribable resource. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
+            "version": "2.7.0",
             "platform": [
                 "darwin"
             ],
@@ -323,6 +323,8 @@
                 "resize",
                 "move",
                 "screens",
+                "displays",
+                "multi-monitor",
                 "layout",
                 "macos",
                 "apps",

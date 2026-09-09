@@ -217,6 +217,153 @@ async function resolveTarget({ window, application, window_index }) {
 }
 
 // =============================================================================
+// SCREENS — "the display in front of me"
+// =============================================================================
+
+// A new window is positioned by the APP, which cascades it off its own last window. So
+// on a multi-monitor setup a new window habitually appears on whichever display that app
+// already had a window on — measurably: with a TextEdit window parked on display 2, a
+// fresh TextEdit window opens at (3741, -409), i.e. cascaded off it, while you sit at
+// display 0. macOS offers no way to ask for a display up front (no API, no Apple event),
+// so the only lever is to move the window once it exists.
+//
+// Which display is "in front of me" is a guess, and the cursor is the best one available:
+// pressing a virtual Stream Deck puts the pointer on that display by definition, and with
+// a hardware deck the pointer is still where you were last working. NSScreen.mainScreen
+// is the wrong answer — it's the screen holding the keyboard focus, which is exactly the
+// display the window wrongly went to.
+const SCREEN_SRC = `({
+  list: function () {
+    ObjC.import('AppKit');
+    var all = $.NSScreen.screens, main = $.NSScreen.mainScreen, out = [];
+    for (var i = 0; i < all.count; i++) {
+      var s = all.objectAtIndex(i), f = s.frame, v = s.visibleFrame;
+      out.push({
+        index: i,
+        x: f.origin.x, y: f.origin.y, width: f.size.width, height: f.size.height,
+        vx: v.origin.x, vy: v.origin.y, vwidth: v.size.width, vheight: v.size.height,
+        is_main: s.isEqual(main),
+      });
+    }
+    return out;
+  },
+  // Accessibility coordinates count DOWN from the top-left of the display whose NSScreen
+  // frame origin is (0,0) — the primary display in Displays settings. NOT mainScreen,
+  // which is merely where the keyboard focus happens to be and moves as you click
+  // around: using its height shifts every y by the height difference between the two.
+  originHeight: function (screens) {
+    for (var i = 0; i < screens.length; i++) if (screens[i].x === 0 && screens[i].y === 0) return screens[i].height;
+    return screens.length ? screens[0].height : 0;
+  },
+  /** A screen's usable area (menu bar + Dock excluded) in Accessibility coordinates. */
+  axVisible: function (scr, h0) {
+    return { screen_index: scr.index, x: scr.vx, y: h0 - (scr.vy + scr.vheight), width: scr.vwidth, height: scr.vheight };
+  },
+  /** The screen containing a point given in Accessibility coordinates. */
+  axScreenAt: function (screens, h0, px, py) {
+    for (var i = 0; i < screens.length; i++) {
+      var s = screens[i], top = h0 - (s.y + s.height);
+      if (px >= s.x && px < s.x + s.width && py >= top && py < top + s.height) return s;
+    }
+    return null;
+  },
+  /** "cursor" | "main" | 0-based index -> screen record. */
+  pick: function (screens, spec) {
+    if (typeof spec === 'number') return screens[spec] || null;
+    if (spec === 'main') {
+      for (var i = 0; i < screens.length; i++) if (screens[i].is_main) return screens[i];
+      return screens[0] || null;
+    }
+    ObjC.import('AppKit');
+    var m = $.NSEvent.mouseLocation;         // NSScreen coords: origin bottom-left, y up
+    var best = null, bestD = Infinity;
+    for (var j = 0; j < screens.length; j++) {
+      var s = screens[j];
+      var cx = Math.min(Math.max(m.x, s.x), s.x + s.width);
+      var cy = Math.min(Math.max(m.y, s.y), s.y + s.height);
+      var d = (cx - m.x) * (cx - m.x) + (cy - m.y) * (cy - m.y);
+      if (d < bestD) { bestD = d; best = s; }   // 0 for the screen it's on, so nearest
+    }                                           // also covers a cursor in a layout gap
+    return best;
+  },
+  /** Move a window into \`area\`, keeping its size when it fits. */
+  place: function (win, area, srcArea) {
+    var p = null, s = null;
+    try { p = win.position(); } catch (e) {}
+    try { s = win.size(); } catch (e) {}
+    if (s && (s[0] > area.width || s[1] > area.height)) {
+      // Coming off a bigger display, keeping the size would push part of the window past
+      // the edge where it can't be reached. Apps with a fixed-size window ignore this.
+      try { win.size = [Math.min(s[0], area.width), Math.min(s[1], area.height)]; } catch (e) {}
+      try { s = win.size(); } catch (e) {}
+    }
+    var w = s ? s[0] : 0, h = s ? s[1] : 0;
+    // Land at the same FRACTION of the free space the window occupied on its old screen:
+    // an app's cascade offsets survive a trip between differently sized displays, and the
+    // window always ends up fully on-screen. Centre it when there's nothing to map from.
+    var fx = 0.5, fy = 0.5;
+    if (p && srcArea) {
+      var freeX = srcArea.width - w, freeY = srcArea.height - h;
+      if (freeX > 0) fx = Math.min(Math.max((p[0] - srcArea.x) / freeX, 0), 1);
+      if (freeY > 0) fy = Math.min(Math.max((p[1] - srcArea.y) / freeY, 0), 1);
+    }
+    var x = Math.round(area.x + fx * Math.max(area.width - w, 0));
+    var y = Math.round(area.y + fy * Math.max(area.height - h, 0));
+    try { win.position = [x, y]; } catch (e) { return null; }
+    // Deliberately NOT read back: \`win\` is a lazy specifier (windows[i] of a process),
+    // and an app can reorder its AX window list once the write lands — measured, a move
+    // whose readback reported a SIBLING window's geometry while the right window had in
+    // fact moved. So report what was asked for; get_windows is the authority afterwards,
+    // and macOS may still clamp a few pixels (a window can't sit under the menu bar).
+    return { x: x, y: y, width: w, height: h };
+  },
+})`;
+
+const SCREEN_SPEC = z.union([z.number().int().min(0), z.enum(['cursor', 'main', 'app'])]);
+
+/**
+ * Move an already-resolved window onto a screen. Returns
+ * `{ screen_index, from_index, moved, x, y, width, height }`, with `moved: false` when
+ * the window was already there, or `{ error }` when it couldn't be placed.
+ *
+ * Cross-DISPLAY only. A window on another Mission Control space of the SAME display
+ * cannot be pulled to the current space — that needs private CGS APIs. Moving between
+ * displays does implicitly land the window on the target display's active space (with
+ * "Displays have separate Spaces" on, the default), which is why this works at all.
+ */
+async function moveToScreen({ application, window_index }, spec) {
+  const res = await run((src, app, i, target_spec) => {
+    const H = eval(src);
+    const screens = H.list();
+    const h0 = H.originHeight(screens);
+    const target = target_spec === 'app' ? null : H.pick(screens, target_spec);
+    if (!target && target_spec !== 'app') return { error: 'no_screen' };
+    let win;
+    try { win = Application('System Events').processes.whose({ name: app })[0].windows[i]; }
+    catch (e) { return { error: 'no_window' }; }
+    let p = null, s = null;
+    try { p = win.position(); s = win.size(); } catch (e) {}
+    const from = (p && s) ? H.axScreenAt(screens, h0, p[0] + s[0] / 2, p[1] + s[1] / 2) : null;
+    if (!target) {   // "app": don't move, just report where the window is
+      return {
+        screen_index: from ? from.index : null, from_index: from ? from.index : null, moved: false,
+        x: p ? p[0] : null, y: p ? p[1] : null, width: s ? s[0] : null, height: s ? s[1] : null,
+      };
+    }
+    if (from && from.index === target.index) {
+      return { screen_index: target.index, from_index: from.index, moved: false, x: p[0], y: p[1], width: s[0], height: s[1] };
+    }
+    const geo = H.place(win, H.axVisible(target, h0), from ? H.axVisible(from, h0) : null);
+    if (!geo) return { error: 'refused' };
+    return {
+      screen_index: target.index, from_index: from ? from.index : null, moved: true,
+      x: geo.x, y: geo.y, width: geo.width, height: geo.height,
+    };
+  }, SCREEN_SRC, application, window_index - 1, spec);
+  return res ?? { error: 'refused' };
+}
+
+// =============================================================================
 // APP-SWITCHER: ordered app list + live resource (backs the key/dial/popup surfaces)
 // =============================================================================
 
@@ -641,10 +788,11 @@ server.registerTool('new_window',
   {
     title: 'New Window',
     icons: [{ src: 'https://api.iconify.design/mdi/window-maximize.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Open a new window in an application and return a stable handle to it, so the window can be moved/resized/closed straight afterwards without guessing an index. Browsers get a real new window (with the URL if given); every other app is sent Cmd-N.',
+    description: 'Open a new window in an application and return a stable handle to it, so the window can be moved/resized/closed straight afterwards without guessing an index. Browsers get a real new window (with the URL if given); every other app is sent Cmd-N. By default the window is brought to the display the pointer is on, since apps otherwise cascade a new window off their own last one — which on a multi-monitor setup is often a display you are not looking at.',
     inputSchema: {
       application: z.string().describe('App name as System Events knows it (e.g. "Safari", "Code", "Terminal")'),
       url: z.string().optional().describe('URL to load — only honoured for Safari / Google Chrome / Arc'),
+      screen: SCREEN_SPEC.optional().describe('Where the window should end up: "cursor" (default — the display the pointer is on, i.e. in front of you), "main" (the display with keyboard focus), a 0-based index from get_screens, or "app" to leave the window wherever the app put it.'),
     },
     outputSchema: {
       ...SUCCESS_OUTPUT,
@@ -652,9 +800,11 @@ server.registerTool('new_window',
       title: z.string().nullable(),
       x: z.number().nullable(), y: z.number().nullable(),
       width: z.number().nullable(), height: z.number().nullable(),
+      screen_index: z.number().nullable().describe('0-based index of the display the window ended up on.'),
+      moved: z.boolean().describe('True if the window had to be moved off the display the app chose for it.'),
     },
   },
-  async ({ application, url }) => {
+  async ({ application, url, screen = 'cursor' }) => {
     // Identifying the window we just made by title or geometry would be guesswork
     // (a second untitled window looks identical). Diffing CoreGraphics window IDS
     // around the action is exact, and needs no Screen Recording since only ids and
@@ -729,25 +879,45 @@ server.registerTool('new_window',
         success: false,
         message: `no new window appeared for ${application}${res?.how === 'cmd-n' ? ' — it may not support ⌘N' : ''}`,
         window: null, title: null, x: null, y: null, width: null, height: null,
+        screen_index: null, moved: false,
       });
     }
+    // The window exists but the app decided where — resolve the handle once and reuse it
+    // for both the title read-back and the move onto the caller's display.
+    let target = null;
+    try { target = await resolveHandle(formatHandle(res.cg_id)); }
+    catch { /* handle already stale — the CG geometry is still worth returning */ }
+
     // The CG title is null unless this process holds Screen Recording; read it back
     // through Accessibility, which the pack already relies on.
     let title = res.title ?? null;
-    if (title === null) {
-      try {
-        const t = await resolveHandle(formatHandle(res.cg_id));
-        title = await run((app, i) => {
-          try { return Application('System Events').processes.whose({ name: app })[0].windows[i].name(); } catch (e) { return null; }
-        }, t.application, t.window_index - 1);
-      } catch { /* handle already stale — geometry is still worth returning */ }
+    if (title === null && target) {
+      title = await run((app, i) => {
+        try { return Application('System Events').processes.whose({ name: app })[0].windows[i].name(); } catch (e) { return null; }
+      }, target.application, target.window_index - 1);
+    }
+
+    let geo = { x: res.x, y: res.y, width: res.width, height: res.height };
+    let screen_index = null, moved = false, note = '';
+    if (target) {
+      const placed = await moveToScreen(target, screen);
+      if (placed.error) {
+        // Placement is a nicety; the window is open and the handle is good either way.
+        note = ` (couldn't place it on a display: ${placed.error})`;
+      } else {
+        screen_index = placed.screen_index;
+        moved = placed.moved;
+        if (placed.x !== null) geo = { x: placed.x, y: placed.y, width: placed.width, height: placed.height };
+        if (moved) note = ` (moved from display ${placed.from_index ?? '?'} to display ${placed.screen_index})`;
+      }
     }
     return sc({
       success: true,
-      message: `Opened a new ${application} window${url ? ` at ${url}` : ''}`,
+      message: `Opened a new ${application} window${url ? ` at ${url}` : ''}${note}`,
       window: formatHandle(res.cg_id),
       title: title ?? null,
-      x: res.x, y: res.y, width: res.width, height: res.height,
+      ...geo,
+      screen_index, moved,
     });
   }
 );
@@ -877,6 +1047,46 @@ server.registerTool('move_window',
 
 // ---------------------------------------------------------------------------
 
+server.registerTool('move_window_to_screen',
+  {
+    title: 'Move Window to Screen',
+    icons: [{ src: 'https://api.iconify.design/mdi/monitor-share.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
+    description: 'Bring a window to a display — by default the one the pointer is on, i.e. the one in front of you. Keeps the window\'s size (shrinking it only if the target display is smaller) and its relative position, so it lands fully on-screen. Cannot pull a window from another Mission Control space of the SAME display; macOS exposes no way to do that.',
+    inputSchema: {
+      ...WINDOW_INPUT,
+      screen: SCREEN_SPEC.optional().describe('"cursor" (default), "main" (the display with keyboard focus), a 0-based index from get_screens, or "app" to leave it where it is and just report the display.'),
+    },
+    outputSchema: {
+      ...SUCCESS_OUTPUT,
+      screen_index: z.number().nullable(),
+      moved: z.boolean(),
+      x: z.number().nullable(), y: z.number().nullable(),
+      width: z.number().nullable(), height: z.number().nullable(),
+    },
+  },
+  async (input) => {
+    const target = await resolveTarget(input);
+    const placed = await moveToScreen(target, input.screen ?? 'cursor');
+    if (placed.error) {
+      const why = placed.error === 'no_screen' ? 'no such display' : placed.error === 'no_window' ? 'window not found' : 'the window refused to move';
+      return {
+        ...sc({ success: false, message: `Could not move the window: ${why}`, screen_index: null, moved: false, x: null, y: null, width: null, height: null }),
+        isError: true,
+      };
+    }
+    return sc({
+      success: true,
+      message: placed.moved
+        ? `Moved window to display ${placed.screen_index}${placed.from_index !== null ? ` (from ${placed.from_index})` : ''}`
+        : `Window was already on display ${placed.screen_index}`,
+      screen_index: placed.screen_index, moved: placed.moved,
+      x: placed.x, y: placed.y, width: placed.width, height: placed.height,
+    });
+  }
+);
+
+// ---------------------------------------------------------------------------
+
 server.registerTool('resize_window',
   {
     title: 'Resize Window',
@@ -945,29 +1155,41 @@ server.registerTool('zoom_window',
   {
     title: 'Zoom Window',
     icons: [{ src: 'https://api.iconify.design/mdi/magnify-plus.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Maximize (zoom) a window to fill a screen without entering fullscreen mode.',
+    description: 'Maximize (zoom) a window to fill a screen without entering fullscreen mode. Fills the display the window is already on unless told otherwise, so zooming never teleports a window off the display you are looking at.',
     inputSchema: {
       ...WINDOW_INPUT,
-      screen_index: z.number().optional().describe('0-based screen index from get_screens (default: main screen)'),
+      screen: SCREEN_SPEC.optional().describe('Display to fill: "app" (default — the one the window is already on), "cursor" (the display in front of you), "main", or a 0-based index from get_screens.'),
+      screen_index: z.number().optional().describe('Deprecated alias for `screen` as a 0-based index.'),
     },
-    outputSchema: SUCCESS_OUTPUT,
+    outputSchema: { ...SUCCESS_OUTPUT, screen_index: z.number().nullable() },
   },
   async (input) => {
-    const screen_index = input.screen_index ?? null;
+    const spec = input.screen !== undefined ? input.screen
+      : input.screen_index !== undefined ? input.screen_index
+      : 'app';
     const { application, window_index } = await resolveTarget(input);
-    await run((app, i, si) => {
-      ObjC.import('AppKit');
-      const mainH = $.NSScreen.mainScreen.frame.size.height;
-      const screen = si !== null ? $.NSScreen.screens.objectAtIndex(si) : $.NSScreen.mainScreen;
-      const f = screen.visibleFrame;
-      // Convert NSScreen coords (origin bottom-left, y up) to Accessibility coords (origin top-left, y down)
-      const axX = f.origin.x;
-      const axY = mainH - (f.origin.y + f.size.height);
+    const res = await run((src, app, i, target_spec) => {
+      const H = eval(src);
+      const screens = H.list();
+      const h0 = H.originHeight(screens);
       const win = Application('System Events').processes.whose({ name: app })[0].windows[i];
-      win.position = [axX, axY];
-      win.size = [f.size.width, f.size.height];
-    }, application, window_index - 1, screen_index);
-    return sc({ success: true, message: `Zoomed window ${window_index} of ${application}` });
+      let scr = target_spec === 'app' ? null : H.pick(screens, target_spec);
+      if (!scr) {
+        let p = null, s = null;
+        try { p = win.position(); s = win.size(); } catch (e) {}
+        scr = (p && s) ? H.axScreenAt(screens, h0, p[0] + s[0] / 2, p[1] + s[1] / 2) : null;
+      }
+      if (!scr) scr = H.pick(screens, 'main');
+      if (!scr) return { error: 'no_screen' };
+      const a = H.axVisible(scr, h0);   // already in Accessibility coordinates
+      win.position = [a.x, a.y];
+      win.size = [a.width, a.height];
+      return { screen_index: scr.index };
+    }, SCREEN_SRC, application, window_index - 1, spec);
+    if (!res || res.error) {
+      return { ...sc({ success: false, message: 'Could not zoom the window: no such display', screen_index: null }), isError: true };
+    }
+    return sc({ success: true, message: `Zoomed window ${window_index} of ${application} to fill display ${res.screen_index}`, screen_index: res.screen_index });
   }
 );
 
@@ -1037,6 +1259,47 @@ server.registerTool('get_screens',
 
 // ---------------------------------------------------------------------------
 
+server.registerTool('get_active_screen',
+  {
+    title: 'Active Screen',
+    icons: [{ src: 'https://api.iconify.design/mdi/monitor-star.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
+    description: 'Which display is "in front of me" — the one the pointer is on. Use this (not get_screen_size, which always answers for the main display) when placing something on a multi-monitor setup. Also reports the main display, which is wherever the keyboard focus is and so is NOT a reliable stand-in for the user\'s attention.',
+    inputSchema: {},
+    outputSchema: {
+      screen_index: z.number().describe('0-based index of the display under the pointer, into get_screens'),
+      is_main: z.boolean(),
+      main_screen_index: z.number(),
+      cursor_x: z.number(), cursor_y: z.number(),
+      x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+      visible_x: z.number(), visible_y: z.number(), visible_width: z.number(), visible_height: z.number(),
+    },
+  },
+  async () => {
+    const result = await run((src) => {
+      ObjC.import('AppKit');
+      const H = eval(src);
+      const screens = H.list();
+      const h0 = H.originHeight(screens);
+      const here = H.pick(screens, 'cursor');
+      const area = H.axVisible(here, h0);
+      const m = $.NSEvent.mouseLocation;
+      const mainIdx = screens.findIndex((s) => s.is_main);
+      return {
+        screen_index: here.index,
+        is_main: here.is_main,
+        main_screen_index: mainIdx < 0 ? 0 : mainIdx,
+        // Accessibility coordinates, to match every position this pack takes or returns.
+        cursor_x: Math.round(m.x), cursor_y: Math.round(h0 - m.y),
+        x: here.x, y: h0 - (here.y + here.height), width: here.width, height: here.height,
+        visible_x: area.x, visible_y: area.y, visible_width: area.width, visible_height: area.height,
+      };
+    }, SCREEN_SRC);
+    return sc(result);
+  }
+);
+
+// ---------------------------------------------------------------------------
+
 server.registerTool('get_window_screen',
   {
     title: 'Window\'s Screen',
@@ -1052,32 +1315,21 @@ server.registerTool('get_window_screen',
   },
   async (input) => {
     const { application, window_index } = await resolveTarget(input);
-    const result = await run((app, i) => {
-      ObjC.import('AppKit');
+    const result = await run((src, app, i) => {
+      const H = eval(src);
+      const screens = H.list();
+      const h0 = H.originHeight(screens);
       const win = Application('System Events').processes.whose({ name: app })[0].windows[i];
       const pos = win.position();
       const sz = win.size();
-      const cx = pos[0] + sz[0] / 2;
-      const cy = pos[1] + sz[1] / 2;
-      const mainH = $.NSScreen.mainScreen.frame.size.height;
-      const screens = $.NSScreen.screens;
-      // Convert centre to NSScreen coords for containment test
-      const nscy = mainH - cy;
-      for (let s = 0; s < screens.count; s++) {
-        const f = screens.objectAtIndex(s).frame;
-        if (cx >= f.origin.x && cx <= f.origin.x + f.size.width &&
-            nscy >= f.origin.y && nscy <= f.origin.y + f.size.height) {
-          return {
-            screen_index: s,
-            is_main: screens.objectAtIndex(s).isEqual($.NSScreen.mainScreen),
-            x: f.origin.x, y: f.origin.y,
-            width: f.size.width, height: f.size.height,
-          };
-        }
-      }
-      const mf = $.NSScreen.mainScreen.frame;
-      return { screen_index: 0, is_main: true, x: mf.origin.x, y: mf.origin.y, width: mf.size.width, height: mf.size.height };
-    }, application, window_index - 1);
+      const found = H.axScreenAt(screens, h0, pos[0] + sz[0] / 2, pos[1] + sz[1] / 2);
+      const scr = found || H.pick(screens, 'main');
+      return {
+        screen_index: scr.index,
+        is_main: scr.is_main,
+        x: scr.x, y: scr.y, width: scr.width, height: scr.height,
+      };
+    }, SCREEN_SRC, application, window_index - 1);
     return sc(result);
   }
 );
