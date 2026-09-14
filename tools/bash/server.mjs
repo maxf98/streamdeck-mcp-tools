@@ -11,10 +11,13 @@ import { randomUUID } from 'node:crypto';
 
 const execFileAsync = promisify(execFile);
 // Advertise resource subscription — the start/stop/watch process tools below
-// expose each tracked process as a subscribable resource.
+// expose each tracked process as a subscribable resource. `listChanged` too: the
+// SET of process resources changes as processes start and stop, and the host only
+// installs its resources/list_changed handler when we declare the capability, so
+// without it a stopped process lingers in the host's cached list forever.
 const server = new McpServer(
   { name: 'BashMCP', version: '1.1.0' },
-  { capabilities: { resources: { subscribe: true }, tools: {} } },
+  { capabilities: { resources: { subscribe: true, listChanged: true }, tools: {} } },
 );
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -186,9 +189,12 @@ server.registerTool('get_env', {
 //
 //   start_process { command, cwd? } → { process_id, pid, running }
 //   stop_process  { process_id }    → { process_id, running }
-//   list_processes {}               → { processes: [...] }
+//   list_processes {}               → { processes: [...] }  (all records, live or not)
 //   resource://bash/process/{process_id} (subscribable) → { process_id, running,
 //                                          pid, command, startedAt }
+//
+// resources/list advertises only the RUNNING ones and fires resources/list_changed
+// as that set changes; any handle stays readable whether or not it's listed.
 
 const PROC_DIR = nodePath.join(process.env.STREAMDECK_MCP_DIR ?? nodePath.join(os.homedir(), '.streamdeck-mcp'), 'bash-processes');
 mkdirSync(PROC_DIR, { recursive: true });
@@ -291,6 +297,11 @@ function notifyProcUpdated(id) {
   const uri = procUri(id);
   if (subscribedProcs.has(uri)) server.server.sendResourceUpdated({ uri }).catch(() => {});
 }
+// The listing below only advertises RUNNING processes, so every liveness change is
+// also a list change — call this alongside notifyProcUpdated, not instead of it.
+function notifyProcListChanged() {
+  try { server.server.sendResourceListChanged(); } catch {}
+}
 
 // io.streamdeck/resourceSchema — see the Studio host's convention (audio's
 // server.mjs has the fuller writeup). Matches statusFor()'s return shape.
@@ -309,8 +320,16 @@ const PROC_STATUS_SCHEMA = {
 server.registerResource(
   'process',
   new ResourceTemplate(`${PROC_URI_PREFIX}{process_id}`, {
+    // Advertise only the processes that are actually RUNNING right now, recomputed
+    // from the OS (statusFor), not whatever a record last claimed. A dead process
+    // is not an observable thing — listing one says "here is live state you can
+    // bind to" about a pid that no longer exists, and it never ages out because
+    // records only disappear on an explicit stop_process. Not-listed doesn't mean
+    // not-readable: the template still serves resource://bash/process/{id} for a
+    // handle a face was authored against, returning running:false — which is
+    // exactly what a stopped toggle wants to show.
     list: async () => ({
-      resources: allRecords().map((rec) => ({
+      resources: allRecords().map((rec) => statusFor(rec.process_id)).filter((s) => s?.running).map((rec) => ({
         uri: procUri(rec.process_id),
         name: `Process ${rec.process_id}`,
         // `title` is what a client shows; `name` stays the stable identifier. The
@@ -384,9 +403,11 @@ server.registerTool('start_process', {
     if (r && r.pid === child.pid && !pidExists(child.pid) && !findPidByCommand(command)) {
       r.running = false; r.pid = null; writeRecord(r);
       notifyProcUpdated(process_id);
+      notifyProcListChanged();
     }
   });
   notifyProcUpdated(process_id);
+  notifyProcListChanged();
   const result = { process_id, pid: rec.pid, running: true, alreadyRunning: false };
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
@@ -410,6 +431,7 @@ server.registerTool('stop_process', {
   }
   deleteRecord(process_id);
   notifyProcUpdated(process_id);
+  notifyProcListChanged();
   const result = { process_id, running: false };
   return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
 });
