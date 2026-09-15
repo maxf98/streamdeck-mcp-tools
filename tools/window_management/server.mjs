@@ -2,7 +2,8 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { run } from '@jxa/run';
-import { readFileSync } from 'fs';
+import { readFileSync, watchFile, unwatchFile } from 'fs';
+import { execFileSync } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
@@ -21,6 +22,9 @@ const SPACES_PLIST = join(homedir(), 'Library/Preferences/com.apple.spaces.plist
 const SURFACE_NS = 'io.streamdeck/surfaces';
 const URI_APPS = 'resource://windows/apps';
 const URI_WINDOWS = 'resource://windows/open';
+const URI_SCREENS = 'resource://windows/screens';
+const URI_SPACES = 'resource://windows/spaces';
+const URI_FRONTMOST = 'resource://windows/frontmost';
 const URI_UI_KEY = 'ui://windows/key';
 const URI_UI_DIAL = 'ui://windows/dial';
 const URI_UI_POPUP = 'ui://windows/popup';
@@ -29,19 +33,28 @@ const URI_UI_POPUP = 'ui://windows/popup';
 // HELPERS
 // =============================================================================
 
+// com.apple.spaces.plist is a BINARY plist (cfprefsd writes bplist00), and the `plist`
+// package parses XML only — reading the file as utf8 handed it binary garbage and it
+// threw "missing root element", so this whole feature was silently dead. plutil does
+// the conversion for us: no extra dependency, ~10ms, and it accepts XML too, so this
+// works whichever format macOS decides to write.
 function readSpacesConfig() {
-  const data = plist.parse(readFileSync(SPACES_PLIST, 'utf8'));
+  const xml = execFileSync('plutil', ['-convert', 'xml1', '-o', '-', SPACES_PLIST], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+  const data = plist.parse(xml);
   const monitors = data.SpacesDisplayConfiguration['Management Data'].Monitors;
   const displays = [];
   for (const monitor of monitors) {
     if (!monitor['Current Space']) continue;
     const current = monitor['Current Space'];
+    // Match the current space by ManagedSpaceID, not uuid: a space's uuid can be the
+    // empty string (observed on the default desktop), and `'' === ''` would flag every
+    // such space as current. The id is always present and unique per display.
     const spaces = (monitor.Spaces || []).map((s, i) => ({
       index: i + 1,
       id: s.ManagedSpaceID,
       uuid: s.uuid,
       type: s.type ?? 0,
-      is_current: s.uuid === current.uuid,
+      is_current: s.ManagedSpaceID === current.ManagedSpaceID,
     }));
     const currentIndex = spaces.find(s => s.is_current)?.index ?? null;
     displays.push({
@@ -369,7 +382,7 @@ async function moveToScreen({ application, window_index }, spec) {
 
 /** Read the switchable GUI apps, ordered stably by name (so prev/next is
  *  predictable), with the frontmost flagged + its index. Shared by the
- *  get_running_applications tool and the live resource watcher. */
+ *  live app-list resource and its watcher. */
 async function readAppList() {
   const raw = await run(() => {
     const se = Application('System Events');
@@ -580,6 +593,128 @@ async function ensurePrimedWindows() {
   if (windowsState.count === 0) await pollWindows();
 }
 
+// =============================================================================
+// SCREENS / SPACES / FRONTMOST: three more live resources
+// =============================================================================
+// These three used to be read-only TOOLS (get_screens, get_screen_size, get_spaces,
+// get_current_space, get_frontmost_application). They are state, not actions, and a
+// tool result is a value nothing can re-render on: a face that wanted the current
+// desktop or a second display had to call a tool once and then go stale. As resources
+// they carry a schema, a stable URI to bind, and a push when they change.
+//
+// Each is a separate URI rather than fields bolted onto the app list, because change
+// RATES differ and a bound face repaints on every push: the frontmost window's title
+// churns as you type, while the display layout changes once a week. Folding the title
+// into resource://windows/apps would repaint the app-switcher key on every keystroke
+// in a browser. One resource per concern — the same rule the app list follows for the
+// dial's preview cursor above.
+//
+// The apps/windows watchers above stay bespoke (they have priming and a title cache);
+// this small helper covers the uniform poll → diff → push part for the three new ones.
+function watchedResource({ uri, read, initial, intervalMs, subscribe }) {
+  let state = initial, primed = false, inFlight = false, lastError = null, stop = null;
+  const sig = (v) => JSON.stringify(v);
+
+  async function poll() {
+    if (inFlight) return;
+    inFlight = true;
+    try {
+      const next = await read();
+      if (sig(next) !== sig(state)) {
+        state = next;
+        if (subscribed.has(uri)) server.server.sendResourceUpdated({ uri }).catch(() => {});
+      }
+      primed = true;
+      lastError = null;
+    } catch (err) {
+      // Log a given failure once — these poll on an interval, see pollApps.
+      const msg = String(err?.message ?? err);
+      if (msg !== lastError) {
+        lastError = msg;
+        process.stderr.write(`[window_management] ${uri} read failed: ${msg}\n`);
+      }
+    } finally {
+      inFlight = false;
+    }
+  }
+
+  return {
+    uri,
+    /** Read for a resources/read: prime on first use so the first read isn't empty. */
+    async current() { if (!primed) await poll(); return state; },
+    /** Only watch while something is bound — no subscriber, no timers, no osascript. */
+    start() {
+      if (stop) return;
+      stop = subscribe ? subscribe(poll) : (() => { const t = setInterval(poll, intervalMs); t.unref?.(); return () => clearInterval(t); })();
+    },
+    stopWatching() { if (stop) { stop(); stop = null; } },
+  };
+}
+
+async function readScreens() {
+  return await run(() => {
+    ObjC.import('AppKit');
+    const main = $.NSScreen.mainScreen;
+    const all = $.NSScreen.screens;
+    const screens = [];
+    for (let i = 0; i < all.count; i++) {
+      const s = all.objectAtIndex(i);
+      const f = s.frame;
+      const v = s.visibleFrame;
+      screens.push({
+        index: i,
+        x: f.origin.x, y: f.origin.y, width: f.size.width, height: f.size.height,
+        visible_x: v.origin.x, visible_y: v.origin.y, visible_width: v.size.width, visible_height: v.size.height,
+        is_main: s.isEqual(main),
+      });
+    }
+    return { screens, count: screens.length, main_index: Math.max(0, screens.findIndex((s) => s.is_main)) };
+  });
+}
+
+async function readFrontmost() {
+  return await run(() => {
+    const proc = Application('System Events').processes.whose({ frontmost: true })()[0];
+    return {
+      app_name: proc.name(),
+      bundle_id: (() => { try { return proc.bundleIdentifier(); } catch { return null; } })(),
+      window_title: (() => { try { return proc.windows[0].name(); } catch { return null; } })(),
+    };
+  });
+}
+
+// Display layout: cheap to read but there is no notification to hang off from JXA, so
+// it polls — slowly, because plugging a monitor in is not a 700ms-latency event.
+const screensResource = watchedResource({
+  uri: URI_SCREENS,
+  read: readScreens,
+  initial: { screens: [], count: 0, main_index: 0 },
+  intervalMs: 3000,
+});
+
+// Spaces come from a plist, so this one needs no polling of its own: watchFile stats
+// the PATH, which survives the atomic replace-by-rename that cfprefsd writes with (an
+// fs.watch on the file would follow the old inode and go deaf after the first switch).
+const spacesResource = watchedResource({
+  uri: URI_SPACES,
+  read: async () => readSpacesConfig(),
+  initial: { displays: [] },
+  subscribe: (onChange) => {
+    watchFile(SPACES_PLIST, { interval: 1000 }, onChange);
+    return () => unwatchFile(SPACES_PLIST, onChange);
+  },
+});
+
+// The frontmost app AND its window title. Polled at the app-list cadence while bound.
+const frontmostResource = watchedResource({
+  uri: URI_FRONTMOST,
+  read: readFrontmost,
+  initial: { app_name: null, bundle_id: null, window_title: null },
+  intervalMs: 700,
+});
+
+const WATCHED = [screensResource, spacesResource, frontmostResource];
+
 // ── Surface views (ui:// MCP-App resources) ─────────────────────────────────
 // Each view's JSX is read from a sibling .view.jsx at read time and wrapped in an
 // envelope carrying io.streamdeck/surfaces _meta. key/dial use `handles` (in-component
@@ -633,33 +768,16 @@ const server = new McpServer({ name: 'window-management', version: '1.0.0' });
 
 // ---------------------------------------------------------------------------
 
-server.registerTool('get_running_applications',
-  {
-    title: 'List Running Apps',
-    icons: [{ src: 'https://api.iconify.design/mdi/apps.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get the currently running GUI applications, ordered stably by name, with the frontmost one flagged. `active_index` is the frontmost app\'s position in `applications` (the ordering the app-switcher dial/key navigate).',
-    inputSchema: {},
-    outputSchema: {
-      applications: z.array(z.object({
-        name: z.string(),
-        bundle_id: z.string().nullable(),
-        frontmost: z.boolean(),
-      })),
-      active_index: z.number(),
-    },
-  },
-  async () => {
-    return sc(await readAppList());
-  }
-);
-
-// ---------------------------------------------------------------------------
+// NOTE: there is no get_running_applications tool. The app list is
+// resource://windows/apps — read it with read_resource, or bind a face to it. It was
+// a tool returning exactly the resource's payload, and an agent that reached for the
+// tool wrote faces that sampled the list once and then never updated.
 
 server.registerTool('get_windows',
   {
     title: 'List Windows',
     icons: [{ src: 'https://api.iconify.design/mdi/window-restore.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get a list of open windows, optionally filtered by application name. Each window carries a `window` handle — pass that (not `index`) to the move/resize/close/fullscreen tools, since `index` is z-order and shifts as windows are focused.',
+    description: 'The EXHAUSTIVE window list, via Accessibility (~1s). Use resource://windows/open instead unless you need what only this can see: minimized windows (which drop out of CoreGraphics entirely) and the `fullscreen` flag. That resource is the live, bindable, ~50ms answer for everything else. Each window carries a `window` handle — pass that (not `index`) to the move/resize/close/fullscreen tools, since `index` is z-order and shifts as windows are focused.',
     inputSchema: {
       application: z.string().optional().describe('Filter to this app name (e.g. "Safari"). Omit for all apps.'),
     },
@@ -741,32 +859,9 @@ server.registerTool('get_windows',
 
 // ---------------------------------------------------------------------------
 
-server.registerTool('get_frontmost_application',
-  {
-    title: 'Frontmost App',
-    icons: [{ src: 'https://api.iconify.design/mdi/application.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get the name and window title of the frontmost (active) application.',
-    inputSchema: {},
-    outputSchema: {
-      app_name: z.string(),
-      bundle_id: z.string().nullable(),
-      window_title: z.string().nullable(),
-    },
-  },
-  async () => {
-    const result = await run(() => {
-      const proc = Application('System Events').processes.whose({ frontmost: true })()[0];
-      return {
-        app_name: proc.name(),
-        bundle_id: (() => { try { return proc.bundleIdentifier(); } catch { return null; } })(),
-        window_title: (() => { try { return proc.windows[0].name(); } catch { return null; } })(),
-      };
-    });
-    return sc(result);
-  }
-);
-
-// ---------------------------------------------------------------------------
+// NOTE: no get_frontmost_application tool — that's resource://windows/frontmost
+// ({ app_name, bundle_id, window_title }), which a face can bind and which pushes when
+// focus or the window title changes.
 
 server.registerTool('activate_application',
   {
@@ -792,7 +887,7 @@ server.registerTool('new_window',
     inputSchema: {
       application: z.string().describe('App name as System Events knows it (e.g. "Safari", "Code", "Terminal")'),
       url: z.string().optional().describe('URL to load — only honoured for Safari / Google Chrome / Arc'),
-      screen: SCREEN_SPEC.optional().describe('Where the window should end up: "cursor" (default — the display the pointer is on, i.e. in front of you), "main" (the display with keyboard focus), a 0-based index from get_screens, or "app" to leave the window wherever the app put it.'),
+      screen: SCREEN_SPEC.optional().describe('Where the window should end up: "cursor" (default — the display the pointer is on, i.e. in front of you), "main" (the display with keyboard focus), a 0-based index from resource://windows/screens, or "app" to leave the window wherever the app put it.'),
     },
     outputSchema: {
       ...SUCCESS_OUTPUT,
@@ -1054,7 +1149,7 @@ server.registerTool('move_window_to_screen',
     description: 'Bring a window to a display — by default the one the pointer is on, i.e. the one in front of you. Keeps the window\'s size (shrinking it only if the target display is smaller) and its relative position, so it lands fully on-screen. Cannot pull a window from another Mission Control space of the SAME display; macOS exposes no way to do that.',
     inputSchema: {
       ...WINDOW_INPUT,
-      screen: SCREEN_SPEC.optional().describe('"cursor" (default), "main" (the display with keyboard focus), a 0-based index from get_screens, or "app" to leave it where it is and just report the display.'),
+      screen: SCREEN_SPEC.optional().describe('"cursor" (default), "main" (the display with keyboard focus), a 0-based index from resource://windows/screens, or "app" to leave it where it is and just report the display.'),
     },
     outputSchema: {
       ...SUCCESS_OUTPUT,
@@ -1158,7 +1253,7 @@ server.registerTool('zoom_window',
     description: 'Maximize (zoom) a window to fill a screen without entering fullscreen mode. Fills the display the window is already on unless told otherwise, so zooming never teleports a window off the display you are looking at.',
     inputSchema: {
       ...WINDOW_INPUT,
-      screen: SCREEN_SPEC.optional().describe('Display to fill: "app" (default — the one the window is already on), "cursor" (the display in front of you), "main", or a 0-based index from get_screens.'),
+      screen: SCREEN_SPEC.optional().describe('Display to fill: "app" (default — the one the window is already on), "cursor" (the display in front of you), "main", or a 0-based index from resource://windows/screens.'),
       screen_index: z.number().optional().describe('Deprecated alias for `screen` as a 0-based index.'),
     },
     outputSchema: { ...SUCCESS_OUTPUT, screen_index: z.number().nullable() },
@@ -1195,78 +1290,18 @@ server.registerTool('zoom_window',
 
 // ---------------------------------------------------------------------------
 
-server.registerTool('get_screen_size',
-  {
-    title: 'Main Screen Size',
-    icons: [{ src: 'https://api.iconify.design/mdi/monitor.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get the screen dimensions of the main display.',
-    inputSchema: {},
-    outputSchema: { width: z.number(), height: z.number() },
-  },
-  async () => {
-    const result = await run(() => {
-      ObjC.import('AppKit');
-      const frame = $.NSScreen.mainScreen.frame;
-      return { width: frame.size.width, height: frame.size.height };
-    });
-    return sc(result);
-  }
-);
-
-// ---------------------------------------------------------------------------
-
-server.registerTool('get_screens',
-  {
-    title: 'List Screens',
-    icons: [{ src: 'https://api.iconify.design/mdi/monitor-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get dimensions and positions of all connected displays.',
-    inputSchema: {},
-    outputSchema: {
-      screens: z.array(z.object({
-        index: z.number(),
-        x: z.number(), y: z.number(),
-        width: z.number(), height: z.number(),
-        visible_x: z.number(), visible_y: z.number(),
-        visible_width: z.number(), visible_height: z.number(),
-        is_main: z.boolean(),
-      })),
-    },
-  },
-  async () => {
-    const result = await run(() => {
-      ObjC.import('AppKit');
-      const main = $.NSScreen.mainScreen;
-      const all = $.NSScreen.screens;
-      const screens = [];
-      for (let i = 0; i < all.count; i++) {
-        const s = all.objectAtIndex(i);
-        const f = s.frame;
-        const v = s.visibleFrame;
-        screens.push({
-          index: i,
-          x: f.origin.x, y: f.origin.y,
-          width: f.size.width, height: f.size.height,
-          visible_x: v.origin.x, visible_y: v.origin.y,
-          visible_width: v.size.width, visible_height: v.size.height,
-          is_main: s.isEqual(main),
-        });
-      }
-      return { screens };
-    });
-    return sc(result);
-  }
-);
-
-// ---------------------------------------------------------------------------
+// NOTE: no get_screens / get_screen_size tools — the displays are
+// resource://windows/screens ({ screens, count, main_index }). Every `screen:` argument
+// in this pack takes an `index` from that list.
 
 server.registerTool('get_active_screen',
   {
     title: 'Active Screen',
     icons: [{ src: 'https://api.iconify.design/mdi/monitor-star.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Which display is "in front of me" — the one the pointer is on. Use this (not get_screen_size, which always answers for the main display) when placing something on a multi-monitor setup. Also reports the main display, which is wherever the keyboard focus is and so is NOT a reliable stand-in for the user\'s attention.',
+    description: 'Which display is "in front of me" — the one the pointer is on. Use this (not resource://windows/screens, whose main_index is merely where the keyboard focus is) when placing something on a multi-monitor setup. Also reports the main display, which is wherever the keyboard focus is and so is NOT a reliable stand-in for the user\'s attention.',
     inputSchema: {},
     outputSchema: {
-      screen_index: z.number().describe('0-based index of the display under the pointer, into get_screens'),
+      screen_index: z.number().describe('0-based index of the display under the pointer, into resource://windows/screens'),
       is_main: z.boolean(),
       main_screen_index: z.number(),
       cursor_x: z.number(), cursor_y: z.number(),
@@ -1307,7 +1342,7 @@ server.registerTool('get_window_screen',
     description: 'Get which screen a window is currently on, by comparing the window position against all screen frames.',
     inputSchema: WINDOW_INPUT,
     outputSchema: {
-      screen_index: z.number().describe('0-based index into get_screens results'),
+      screen_index: z.number().describe('0-based index into resource://windows/screens'),
       is_main: z.boolean(),
       x: z.number(), y: z.number(),
       width: z.number(), height: z.number(),
@@ -1488,54 +1523,9 @@ server.registerTool('get_active_tab_info',
 
 // ---------------------------------------------------------------------------
 
-server.registerTool('get_spaces',
-  {
-    title: 'List Spaces',
-    icons: [{ src: 'https://api.iconify.design/mdi/view-grid.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get information about all Mission Control desktops/spaces.',
-    inputSchema: {},
-    outputSchema: {
-      displays: z.array(z.object({
-        display: z.string(),
-        current_space_index: z.number().nullable(),
-        current_space_id: z.number(),
-        total_spaces: z.number(),
-        spaces: z.array(z.object({
-          index: z.number(),
-          id: z.number(),
-          uuid: z.string(),
-          type: z.number(),
-          is_current: z.boolean(),
-        })),
-      })),
-    },
-  },
-  async () => sc(readSpacesConfig())
-);
-
-// ---------------------------------------------------------------------------
-
-server.registerTool('get_current_space',
-  {
-    title: 'Current Space',
-    icons: [{ src: 'https://api.iconify.design/mdi/view-grid-outline.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
-    description: 'Get the current desktop/space number and details.',
-    inputSchema: {},
-    outputSchema: {
-      current_space: z.number().nullable(),
-      total_spaces: z.number(),
-      space_id: z.number(),
-    },
-  },
-  async () => {
-    const config = readSpacesConfig();
-    if (!config.displays.length) throw new Error('No display information found');
-    const d = config.displays[0];
-    return sc({ current_space: d.current_space_index, total_spaces: d.total_spaces, space_id: d.current_space_id });
-  }
-);
-
-// ---------------------------------------------------------------------------
+// NOTE: no get_spaces / get_current_space tools — Mission Control spaces are
+// resource://windows/spaces ({ displays: [{ current_space_index, spaces, ... }] }),
+// which updates when you switch desktops.
 
 server.registerTool('launch_application',
   {
@@ -1586,8 +1576,7 @@ server.registerTool('open_file',
 server.server.registerCapabilities({ resources: { subscribe: true, listChanged: true } });
 
 // io.streamdeck/resourceSchema — see the Studio host's convention (audio's
-// server.mjs has the fuller writeup). Matches appsState's shape (also the
-// get_running_applications tool's outputSchema).
+// server.mjs has the fuller writeup). Matches appsState's shape.
 const APPS_SCHEMA = {
   type: 'object',
   properties: {
@@ -1669,6 +1658,99 @@ server.registerResource(
   }
 );
 
+const SCREEN_FIELDS = {
+  index: { type: 'number' },
+  x: { type: 'number' }, y: { type: 'number' },
+  width: { type: 'number' }, height: { type: 'number' },
+  visible_x: { type: 'number' }, visible_y: { type: 'number' },
+  visible_width: { type: 'number' }, visible_height: { type: 'number' },
+  is_main: { type: 'boolean' },
+};
+
+const SCREENS_SCHEMA = {
+  type: 'object',
+  properties: {
+    screens: { type: 'array', items: { type: 'object', properties: SCREEN_FIELDS, required: ['index', 'x', 'y', 'width', 'height', 'is_main'] } },
+    count: { type: 'number' },
+    main_index: { type: 'number', description: 'Index into `screens` of the display with keyboard focus — NOT the one the user is looking at (see get_active_screen).' },
+  },
+  required: ['screens', 'count'],
+};
+
+// The connected displays. `index` is what every `screen:` argument in this pack takes.
+// Geometry is in NSScreen coordinates (origin bottom-left) — the window tools take and
+// return Accessibility coordinates (origin top-left of the PRIMARY display), so don't
+// pass these numbers to move_window; pass the index and let the tool do the conversion.
+server.registerResource(
+  'screens',
+  URI_SCREENS,
+  { title: 'Displays', description: 'Every connected display: frame, visible frame (menu bar + Dock excluded) and which one holds keyboard focus. Bind this to enable/disable a per-display button when a monitor comes or goes.', icons: [{ src: 'https://api.iconify.design/mdi/monitor-multiple.svg', mimeType: 'image/svg+xml', sizes: ['any'] }], mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': SCREENS_SCHEMA } },
+  async () => ({ contents: [{ uri: URI_SCREENS, mimeType: 'application/json', text: JSON.stringify(await screensResource.current()) }] })
+);
+
+const SPACES_SCHEMA = {
+  type: 'object',
+  properties: {
+    displays: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          display: { type: 'string' },
+          current_space_index: { type: ['number', 'null'], description: '1-based position of the active space on this display' },
+          current_space_id: { type: 'number' },
+          total_spaces: { type: 'number' },
+          spaces: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                index: { type: 'number' }, id: { type: 'number' }, uuid: { type: 'string' },
+                type: { type: 'number' }, is_current: { type: 'boolean' },
+              },
+              required: ['index', 'id', 'uuid', 'is_current'],
+            },
+          },
+        },
+        required: ['display', 'current_space_id', 'total_spaces', 'spaces'],
+      },
+    },
+  },
+  required: ['displays'],
+};
+
+// Mission Control spaces, per display, with the active one flagged — the live data a
+// "which desktop am I on" face binds to. Read from com.apple.spaces.plist, so this is
+// the cheapest resource here (a file parse, no Apple events, no permission prompt).
+// A fullscreen window occupies its own space, so `total_spaces` moves as windows go
+// fullscreen — that is macOS's model, not a glitch.
+server.registerResource(
+  'spaces',
+  URI_SPACES,
+  { title: 'Mission Control Spaces', description: 'Per display: every space, its id/uuid, and which is current. Updates when you switch desktops.', icons: [{ src: 'https://api.iconify.design/mdi/view-grid.svg', mimeType: 'image/svg+xml', sizes: ['any'] }], mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': SPACES_SCHEMA } },
+  async () => ({ contents: [{ uri: URI_SPACES, mimeType: 'application/json', text: JSON.stringify(await spacesResource.current()) }] })
+);
+
+const FRONTMOST_SCHEMA = {
+  type: 'object',
+  properties: {
+    app_name: { type: ['string', 'null'] },
+    bundle_id: { type: ['string', 'null'] },
+    window_title: { type: ['string', 'null'], description: 'Title of the app\'s front window; null when it has none or withholds it.' },
+  },
+  required: ['app_name'],
+};
+
+// The focused app and its window title. Separate from resource://windows/apps on
+// purpose: the title changes as you type or switch browser tabs, and a face bound to
+// the app list must not repaint for that. Bind THIS only if you render the title.
+server.registerResource(
+  'frontmost-application',
+  URI_FRONTMOST,
+  { title: 'Frontmost Application', description: 'The active app (name + bundle id) and the title of its front window.', icons: [{ src: 'https://api.iconify.design/mdi/application.svg', mimeType: 'image/svg+xml', sizes: ['any'] }], mimeType: 'application/json', _meta: { 'io.streamdeck/resourceSchema': FRONTMOST_SCHEMA } },
+  async () => ({ contents: [{ uri: URI_FRONTMOST, mimeType: 'application/json', text: JSON.stringify(await frontmostResource.current()) }] })
+);
+
 // The three surface views. metadata carries the io.streamdeck/surfaces _meta on BOTH
 // the list descriptor (so the host classifies the surface from resources/list) and
 // the read envelope (jsx + _meta), matching what the host's resolveUiResource reads.
@@ -1709,6 +1791,7 @@ server.server.setRequestHandler('resources/subscribe', async (req) => {
     subscribed.add(uri);
     if (uri === URI_APPS) startWatching();
     if (uri === URI_WINDOWS) startWatchingWindows();
+    WATCHED.find((r) => r.uri === uri)?.start();
   }
   return {};
 });
@@ -1718,6 +1801,7 @@ server.server.setRequestHandler('resources/unsubscribe', async (req) => {
     subscribed.delete(uri);
     if (!subscribed.has(URI_APPS)) stopWatching();
     if (!subscribed.has(URI_WINDOWS)) stopWatchingWindows();
+    for (const r of WATCHED) if (!subscribed.has(r.uri)) r.stopWatching();
   }
   return {};
 });
