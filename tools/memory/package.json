@@ -1,0 +1,9 @@
+{
+  "name": "memory",
+  "type": "module",
+  "version": "1.0.0",
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.2.0"
+  }
+}

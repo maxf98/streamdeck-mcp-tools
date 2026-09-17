@@ -60,7 +60,7 @@
             "id": "bash",
             "name": "Bash / Shell",
             "description": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
-            "version": "1.8.0",
+            "version": "1.9.0",
             "platform": [
                 "darwin"
             ],
@@ -151,6 +151,28 @@
             "path": "tools/launcher"
         },
         {
+            "id": "memory",
+            "name": "Memory",
+            "description": "A persistent key-value store for buttons \u2014 the one thing a face cannot do for itself. A face runs on an opaque origin with no localStorage and no indexedDB, and its local view state dies when the idle window is dismissed, so without a server a button cannot remember anything between presses. Get/set/delete any JSON value, plus increment_value and toggle_value for the two cases buttons actually need (a press counter, a latching toggle). The whole store is also a live resource (resource://memory/store), so a face can bind it and repaint when a value changes.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin",
+                "linux",
+                "win32"
+            ],
+            "tags": [
+                "memory",
+                "storage",
+                "persistence",
+                "state",
+                "key-value",
+                "counter",
+                "toggle",
+                "resource"
+            ],
+            "path": "tools/memory"
+        },
+        {
             "id": "obsidian",
             "name": "Obsidian",
             "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
@@ -169,8 +191,8 @@
         {
             "id": "openai",
             "name": "OpenAI",
-            "description": "Structured LLM calls, image analysis (GPT-4o vision), and Whisper audio transcription. All tools share a single API key.",
-            "version": "1.3.0",
+            "description": "Structured LLM calls, image analysis (GPT-4o vision), image generation and editing (GPT Image \u2014 written to disk and returned as a path, never as inline base64), and Whisper audio transcription. All tools share a single API key.",
+            "version": "1.4.0",
             "platform": [
                 "darwin",
                 "linux",
@@ -182,7 +204,10 @@
                 "ai",
                 "structured-output",
                 "whisper",
-                "transcription"
+                "transcription",
+                "image",
+                "image-generation",
+                "vision"
             ],
             "path": "tools/openai"
         },
@@ -311,10 +336,33 @@
             "path": "tools/vscode"
         },
         {
+            "id": "web",
+            "name": "Web",
+            "description": "Search the web and read pages. search_web and search_news query the Brave Search API (needs a free API key); fetch_url retrieves any http(s) page and returns it as readable text, and needs no key at all. fetch_url is also how a face reaches an HTTP API it cannot call itself \u2014 a face runs on an opaque origin, so its own fetch is blocked by CORS for most hosts, while a pack request carries no Origin.",
+            "version": "1.0.0",
+            "platform": [
+                "darwin",
+                "linux",
+                "win32"
+            ],
+            "tags": [
+                "web",
+                "search",
+                "brave",
+                "fetch",
+                "url",
+                "http",
+                "scrape",
+                "news",
+                "internet"
+            ],
+            "path": "tools/web"
+        },
+        {
             "id": "window_management",
             "name": "Window Management",
-            "description": "Move, resize and snap windows across screens; get frontmost app, list open windows, manage displays and spaces. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused, and the live window list is a subscribable resource. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
-            "version": "2.7.0",
+            "description": "Move, resize and snap windows across screens; open, close and place windows across displays and spaces. The tools ACT; the observable state is subscribable resources \u2014 the app list, the open windows, the displays, the Mission Control spaces and the frontmost app, each with a schema a face can bind to. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces \u2014 a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid \u2014 as live MCP App UI resources with in-component handlers.",
+            "version": "3.0.0",
             "platform": [
                 "darwin"
             ],
