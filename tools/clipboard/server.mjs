@@ -81,6 +81,53 @@ async function getClipboardTypes() {
   }
 }
 
+/**
+ * Press ⌘C in whatever app is frontmost and wait for the copy to land.
+ *
+ * Whether the keystroke actually copied anything can't be decided by diffing
+ * pbpaste: an empty diff is equally "nothing was selected" and "the selection was
+ * already on the clipboard", and an image selection never touches the text at all.
+ * NSPasteboard's changeCount is the exact signal — it increments once per write,
+ * whatever the flavour — so the whole wait happens inside one JXA script, where
+ * the before-count can't go stale between processes.
+ */
+async function copySelectionViaKeystroke(timeoutMs) {
+  const script = `
+    ObjC.import('AppKit');
+    const pb = $.NSPasteboard.generalPasteboard;
+    // The bridge hands changeCount back as a STRING, so compare it as a number or the
+    // test breaks every time the count gains a digit ('100' > '99' is false).
+    const count = () => Number(pb.changeCount);
+    const before = count();
+    const se = Application('System Events');
+    let app = null;
+    try { app = se.applicationProcesses.whose({ frontmost: true })[0].name(); } catch (e) {}
+    se.keystroke('c', { using: 'command down' });
+    let waited = 0;
+    while (waited < ${timeoutMs} && count() <= before) {
+      $.NSThread.sleepForTimeInterval(0.05);
+      waited += 50;
+    }
+    JSON.stringify({ changed: count() > before, waited_ms: waited, app });
+  `;
+  try {
+    const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script]);
+    return JSON.parse(stdout);
+  } catch (err) {
+    const msg = String(err.stderr || err.message || err);
+    // TCC attributes the request to the responsible process, which is the Studio app
+    // (osascript inherits it down the spawn chain) — so that, not "osascript", is what
+    // the user has to find in the list.
+    if (/not allowed|-1719|-25211|assistive/i.test(msg))
+      throw new Error(
+        'Not permitted to send keystrokes. Grant Accessibility to the Stream Deck MCP ' +
+        'Studio app in System Settings → Privacy & Security → Accessibility, then retry. ' +
+        `(osascript said: ${msg.trim()})`
+      );
+    throw new Error(`Could not send ⌘C: ${msg.trim()}`);
+  }
+}
+
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 server.registerTool('get_clipboard', {
@@ -140,7 +187,9 @@ server.registerTool('set_clipboard', {
   title: 'Set Clipboard',
   icons: [{ src: 'https://api.iconify.design/mdi/clipboard-edit.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
   description:
-    'Set the system clipboard. Supports multiple content types: ' +
+    'Copy content TO the system clipboard — the pbcopy equivalent, for text you already ' +
+    'have (to copy the user\'s current selection out of an app instead, use copy_selection). ' +
+    'Supports multiple content types: ' +
     '"text" (plain text string), "html" (HTML string — also sets plain text fallback), ' +
     '"image_file" (path to an image file), "image_base64" (raw base64 PNG/JPEG data). ' +
     'Returns {success, message, type}.',
@@ -195,6 +244,78 @@ server.registerTool('set_clipboard', {
   }
 
   throw new Error(`Unknown type: ${type}`);
+});
+
+server.registerTool('copy_selection', {
+  title: 'Copy Selection',
+  icons: [{ src: 'https://api.iconify.design/mdi/content-copy.svg', mimeType: 'image/svg+xml', sizes: ['any'] }],
+  description:
+    'Copy the CURRENT SELECTION out of the frontmost app by pressing ⌘C, then return what ' +
+    'landed on the clipboard — the "copy what the user has highlighted" tool. Use this instead ' +
+    'of shelling out to osascript. Note it acts on whatever app is frontmost at that moment, ' +
+    'and the returned `app` tells you which one that was. For putting your OWN text on the ' +
+    'clipboard use set_clipboard instead. Requires Accessibility permission. ' +
+    'Returns {success, changed, app, type, text, length, available_types}.',
+  inputSchema: {
+    timeout_ms: z.number().int().default(1000).describe(
+      'How long to wait for the copy to land before giving up (default 1000ms). Raise it for a slow app copying a large selection.'
+    ),
+  },
+  outputSchema: z.object({
+    success: z.boolean(),
+    // false means ⌘C was delivered but nothing was written — almost always "nothing
+    // was selected", or an app that doesn't bind ⌘C to copy.
+    changed: z.boolean(),
+    app: z.string().nullable(),
+    type: z.string(),
+    text: z.string().optional(),
+    length: z.number().optional(),
+    available_types: z.array(z.string()),
+    message: z.string().optional(),
+  }),
+}, async ({ timeout_ms }) => {
+  const { changed, app } = await copySelectionViaKeystroke(timeout_ms);
+  const types = await getClipboardTypes();
+
+  if (!changed) {
+    const result = {
+      success: true,
+      changed: false,
+      app: app ?? null,
+      type: 'none',
+      available_types: types,
+      message: app
+        ? `⌘C was sent to ${app} but nothing was copied — most likely nothing was selected.`
+        : '⌘C was sent but nothing was copied — most likely nothing was selected.',
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+  }
+
+  // An image selection leaves pbpaste empty, so report it as an image rather than as
+  // an empty string — and hand back the base64 so a vision model can actually see it.
+  if (types.includes('image') && !types.includes('plain_text')) {
+    const base64 = await getClipboardImage();
+    const result = { success: true, changed: true, app: app ?? null, type: 'image', available_types: types };
+    return {
+      content: base64
+        ? [{ type: 'image', data: base64, mimeType: 'image/png' }, { type: 'text', text: JSON.stringify(result) }]
+        : [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  }
+
+  const text = await getClipboardText();
+  if (text) addToHistory(text, 'copy_selection');
+  const result = {
+    success: true,
+    changed: true,
+    app: app ?? null,
+    type: 'text',
+    text,
+    length: text.length,
+    available_types: types,
+  };
+  return { content: [{ type: 'text', text: text || '(copied, but no text on the clipboard)' }], structuredContent: result };
 });
 
 server.registerTool('get_clipboard_info', {

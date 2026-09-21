@@ -1,11 +1,11 @@
 {
     "id": "clipboard",
     "name": "Clipboard",
-    "description": "Read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, file paths, and clipboard history.",
-    "version": "1.2.0",
+    "description": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard, and copy the current selection out of the frontmost app with ⌘C. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Copying the selection needs Accessibility permission — macOS asks on first use.",
+    "version": "1.3.0",
     "command": "node",
     "args": ["server.mjs"],
     "install": "npm install",
     "platform": ["darwin"],
-    "tags": ["clipboard", "text", "macos", "system"]
+    "tags": ["clipboard", "copy", "paste", "selection", "text", "macos", "system"]
 }
