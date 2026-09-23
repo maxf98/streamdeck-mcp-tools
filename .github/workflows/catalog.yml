@@ -10,6 +10,11 @@ name: Catalog
 #             only thing that writes catalog.json / index.json / registry.json — so a
 #             hand-edit of those files gets silently reverted on the next push. Edit a
 #             source instead.
+#
+#   api       runs the catalog service's tests on both, because those tests read the
+#             committed catalog.json and assert what it may and may not serve — a client
+#             secret must never appear, a half-configured server must stay hidden. They
+#             are the reason the service lives in this repo rather than beside its deploy.
 
 on:
   pull_request:
@@ -17,12 +22,14 @@ on:
       - "servers/**"
       - "tools/**/manifest.json"
       - "scripts/**"
+      - "api/**"
   push:
     branches: [main]
     paths:
       - "servers/**"
       - "tools/**/manifest.json"
       - "scripts/**"
+      - "api/**"
 
 jobs:
   validate:
@@ -53,3 +60,25 @@ jobs:
           git add catalog.json index.json registry.json
           git diff --staged --quiet || git commit -m "chore: regenerate catalog"
           git push
+
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install jsonschema
+
+      # Regenerated first, without committing, so these tests see the catalog this
+      # branch WOULD produce. On a pull request the committed catalog.json is expected
+      # to be stale — the contributor isn't asked to run the generator.
+      - name: Rebuild the catalog into the workspace
+        run: python3 scripts/build_catalog.py
+
+      - name: Test the catalog API against it
+        working-directory: api
+        run: |
+          npm install
+          npx tsc --noEmit
+          npm test

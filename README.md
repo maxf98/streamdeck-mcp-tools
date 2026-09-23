@@ -3,8 +3,9 @@
 This repository is the official catalog of MCP servers for [Stream Deck MCP Studio](https://github.com/maxf98/streamdeck-mcp-studio) — both **tool packs**, local MCP servers that run as subprocesses inside the Studio's gateway, and **remote servers** hosted by their vendors. Its tools are available to every Stream Deck button at press time.
 
 It is a conforming MCP registry: every entry is a `server.json` document
-(`ServerDetail`, schema `2025-12-11`), generated into `catalog.json` and served through
-the Generic Registry API, so other clients can consume it too.
+(`ServerDetail`, schema `2025-12-11`), generated into `catalog.json` and served through the
+Generic Registry API by the small service in [`api/`](api/), so other clients can consume
+it too.
 
 **To contribute a server, read [CONTRIBUTING.md](CONTRIBUTING.md).** The rest of this file
 describes how a tool pack is built.
@@ -203,6 +204,20 @@ pip install jsonschema
 python3 scripts/build_catalog.py             # validate + write
 python3 scripts/build_catalog.py --validate  # validate only (what PR CI runs)
 ```
+
+---
+
+## The API — `api/`
+
+`catalog.json` is a static file anyone can fetch, but a conforming registry client asks for
+`/v0.1/servers/io.github.maxf98%2Fmiro/versions/latest`, and a percent-encoded name isn't a
+path a static host can answer. [`api/`](api/) is the ~300-line Hono service that does,
+deployed on Railway. It holds no credentials; the OAuth code→token exchange that needs a
+client secret lives in a separate private service.
+
+Its tests read the generated `catalog.json` and assert what it may and may not serve — no
+client secret, no half-configured server — so they run on every pull request here. That's
+why the service is in this repo rather than beside its deployment.
 
 ---
 

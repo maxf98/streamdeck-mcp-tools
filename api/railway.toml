@@ -1,0 +1,8 @@
+# Railway builds this subdirectory, not the repo root — set the service's root directory
+# to `api/` in the dashboard. The rest of the repo is Python and data.
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node dist/index.js"
+healthcheckPath = "/health"

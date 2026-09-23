@@ -143,6 +143,10 @@ On your PR, `scripts/build_catalog.py --validate` checks every entry against the
 `server.json` schema (`scripts/schemas/`) and rejects duplicate names or `sourceId`s. It
 does **not** require you to have rebuilt the outputs.
 
+The catalog API's tests (`api/`) also run, against a catalog regenerated from your branch —
+so if your entry would break a consumer, or looks like it leaks a credential, you find out
+on the PR rather than after merge.
+
 After merge, the same script regenerates `catalog.json` (the spec-shaped catalog),
 `index.json` and `registry.json` (both legacy, kept byte-identical so already-shipped
 Studio builds keep working) and commits them.
