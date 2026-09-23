@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/gcalendar",
+  "title": "Google Calendar",
+  "description": "Google's hosted Calendar MCP server: events and schedules.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://calendarmcp.googleapis.com/mcp/v1"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "gcalendar",
+      "order": 9,
+      "authKind": "oauth-preregistered",
+      "scopes": "https://www.googleapis.com/auth/calendar",
+      "clientIdEnv": "GOOGLE_CLIENT_ID",
+      "publishGated": true,
+      "notes": [
+        "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+        "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+        "Scope class: SENSITIVE — needs Google verification (no CASA assessment).",
+        "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+      ]
+    }
+  }
+}

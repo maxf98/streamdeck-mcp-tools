@@ -1,11 +1,31 @@
 {
-  "id": "window_management",
-  "name": "Window Management",
-  "description": "Move, resize and snap windows across screens; open, close and place windows across displays and spaces. The tools ACT; the observable state is subscribable resources — the app list, the open windows, the displays, the Mission Control spaces and the frontmost app, each with a schema a face can bind to. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces — a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid — as live MCP App UI resources with in-component handlers.",
-  "version": "3.0.0",
-  "command": "node",
-  "args": ["server.mjs"],
-  "install": "npm install",
-  "platform": ["darwin"],
-  "tags": ["windows", "resize", "move", "screens", "displays", "multi-monitor", "layout", "macos", "apps", "switcher", "key", "dial", "popup", "handles"]
+    "id": "window_management",
+    "name": "Window Management",
+    "description": "Move, resize and snap windows across screens; open, close and place windows across displays and spaces. The tools ACT; the observable state is subscribable resources — the app list, the open windows, the displays, the Mission Control spaces and the frontmost app, each with a schema a face can bind to. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces — a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid — as live MCP App UI resources with in-component handlers.",
+    "summary": "Move, resize and snap windows across displays, with windows as live resources.",
+    "version": "3.0.0",
+    "command": "node",
+    "args": [
+        "server.mjs"
+    ],
+    "install": "npm install",
+    "platform": [
+        "darwin"
+    ],
+    "tags": [
+        "windows",
+        "resize",
+        "move",
+        "screens",
+        "displays",
+        "multi-monitor",
+        "layout",
+        "macos",
+        "apps",
+        "switcher",
+        "key",
+        "dial",
+        "popup",
+        "handles"
+    ]
 }

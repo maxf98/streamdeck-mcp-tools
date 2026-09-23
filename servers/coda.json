@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/coda",
+  "title": "Coda",
+  "description": "Hosted Coda MCP server: docs, tables and rows.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://coda.io/apis/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "coda",
+      "order": 3,
+      "authKind": "oauth-dcr",
+      "notes": [
+        "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+      ]
+    }
+  }
+}

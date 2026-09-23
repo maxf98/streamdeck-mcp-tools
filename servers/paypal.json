@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/paypal",
+  "title": "PayPal",
+  "description": "Hosted PayPal MCP server: invoices, payments and subscriptions.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.paypal.com/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "paypal",
+      "order": 5,
+      "authKind": "oauth-dcr",
+      "notes": [
+        "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+      ]
+    }
+  }
+}

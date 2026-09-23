@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/github",
+  "title": "GitHub",
+  "description": "GitHub's hosted MCP server: repos, issues and PRs. Needs a personal access token.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "GitHub personal access token, sent as `Bearer <token>`.",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "github",
+      "order": 15,
+      "authKind": "api-key",
+      "apiKeyUrl": "https://github.com/settings/tokens",
+      "notes": [
+        "GitHub's hosted server has no dynamic client registration and its built-in OAuth is reserved for first-party clients (Copilot/VS Code), so we take a user-supplied PAT as the Bearer token instead."
+      ]
+    }
+  }
+}

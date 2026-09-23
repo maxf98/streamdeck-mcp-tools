@@ -2,12 +2,30 @@
     "id": "git",
     "name": "Git",
     "description": "Repository state for buttons: branch, ahead/behind, and staged/unstaged/untracked counts as structured fields rather than porcelain a face would have to parse, plus commit, push, pull, fetch, branch switching and stashing. The point is resource://git/status/{repo} — a live, subscribable status that pushes when you save a file, commit or switch branches, so a key can show \"main ↑1 ~3\" without polling. Watching only runs while something is bound. No force-push, reset, rebase or amend: use the bash pack if you mean it.",
+    "summary": "Live repo status as a subscribable resource, plus commit, push, pull and stash.",
     "version": "1.0.0",
     "command": "node",
-    "args": ["server.mjs"],
+    "args": [
+        "server.mjs"
+    ],
     "install": "npm install",
-    "platform": ["darwin", "linux", "win32"],
-    "tags": ["git", "vcs", "version-control", "branch", "commit", "push", "pull", "stash", "developer", "resource"],
+    "platform": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "tags": [
+        "git",
+        "vcs",
+        "version-control",
+        "branch",
+        "commit",
+        "push",
+        "pull",
+        "stash",
+        "developer",
+        "resource"
+    ],
     "config_schema": {
         "default_repo": {
             "description": "Absolute path to the repository buttons should act on when they don't name one. Lets a face be authored without hard-coding a path.",

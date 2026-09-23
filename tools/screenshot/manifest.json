@@ -1,11 +1,24 @@
 {
-  "id": "screenshot",
-  "name": "Screenshot",
-  "description": "Capture the screen, frontmost window, a clicked window, or an interactive drag-selected region as a PNG image. Saves to a path (creating folders as needed) or returns base64. Also records the screen to video.",
-  "version": "1.4.0",
-  "command": "node",
-  "args": ["server.mjs"],
-  "install": "npm install",
-  "platform": ["darwin"],
-  "tags": ["screenshot", "screen", "capture", "vision", "image", "recording", "macos"]
+    "id": "screenshot",
+    "name": "Screenshot",
+    "description": "Capture the screen, frontmost window, a clicked window, or an interactive drag-selected region as a PNG image. Saves to a path (creating folders as needed) or returns base64. Also records the screen to video.",
+    "summary": "Capture the screen, a window or a dragged region as PNG, and record video.",
+    "version": "1.4.0",
+    "command": "node",
+    "args": [
+        "server.mjs"
+    ],
+    "install": "npm install",
+    "platform": [
+        "darwin"
+    ],
+    "tags": [
+        "screenshot",
+        "screen",
+        "capture",
+        "vision",
+        "image",
+        "recording",
+        "macos"
+    ]
 }

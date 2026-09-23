@@ -2,10 +2,26 @@
     "id": "memory",
     "name": "Memory",
     "description": "A persistent key-value store for buttons — the one thing a face cannot do for itself. A face runs on an opaque origin with no localStorage and no indexedDB, and its local view state dies when the idle window is dismissed, so without a server a button cannot remember anything between presses. Get/set/delete any JSON value, plus increment_value and toggle_value for the two cases buttons actually need (a press counter, a latching toggle). The whole store is also a live resource (resource://memory/store), so a face can bind it and repaint when a value changes.",
+    "summary": "A persistent key-value store for buttons, exposed as a live resource.",
     "version": "1.0.0",
     "command": "node",
-    "args": ["server.mjs"],
+    "args": [
+        "server.mjs"
+    ],
     "install": "npm install",
-    "platform": ["darwin", "linux", "win32"],
-    "tags": ["memory", "storage", "persistence", "state", "key-value", "counter", "toggle", "resource"]
+    "platform": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "tags": [
+        "memory",
+        "storage",
+        "persistence",
+        "state",
+        "key-value",
+        "counter",
+        "toggle",
+        "resource"
+    ]
 }

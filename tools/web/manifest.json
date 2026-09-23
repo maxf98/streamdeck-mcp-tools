@@ -2,12 +2,29 @@
     "id": "web",
     "name": "Web",
     "description": "Search the web and read pages. search_web and search_news query the Brave Search API (needs a free API key); fetch_url retrieves any http(s) page and returns it as readable text, and needs no key at all. fetch_url is also how a face reaches an HTTP API it cannot call itself — a face runs on an opaque origin, so its own fetch is blocked by CORS for most hosts, while a pack request carries no Origin.",
+    "summary": "Search the web with Brave and fetch any http(s) page as readable text.",
     "version": "1.0.0",
     "command": "node",
-    "args": ["server.mjs"],
+    "args": [
+        "server.mjs"
+    ],
     "install": "npm install",
-    "platform": ["darwin", "linux", "win32"],
-    "tags": ["web", "search", "brave", "fetch", "url", "http", "scrape", "news", "internet"],
+    "platform": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "tags": [
+        "web",
+        "search",
+        "brave",
+        "fetch",
+        "url",
+        "http",
+        "scrape",
+        "news",
+        "internet"
+    ],
     "config_schema": {
         "brave_api_key": {
             "description": "Brave Search API key — needed for search_web / search_news only; fetch_url works without it. Free tier at https://api-dashboard.search.brave.com/",

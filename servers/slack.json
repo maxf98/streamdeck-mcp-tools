@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/slack",
+  "title": "Slack",
+  "description": "Slack's hosted MCP server: search, messages, channels and canvases.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.slack.com/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "slack",
+      "order": 16,
+      "authKind": "oauth-preregistered",
+      "scopes": "search:read.public chat:write channels:history users:read users:read.email canvases:read canvases:write",
+      "clientId": "392247373648.10663617022481",
+      "clientIdEnv": "SLACK_CLIENT_ID",
+      "scopesEnv": "SLACK_SCOPES",
+      "exchangeProxy": true,
+      "notes": [
+        "Pre-registered OAuth app: Slack requires a client SECRET, so the code->token exchange runs on the registry service and `exchangeProxy` tells the Studio to route its redirect through it. The secret stays a Railway env var.",
+        "The client id is a literal here because this list is published as a static file. That is not a leak: a client id is public by construction (it rides in every authorize URL) and this exact value has been served unauthenticated from /registry all along.",
+        "The scopes are USER scopes (sent as user_scope in the authorize URL) because Slack's MCP server needs a user token (xoxp-), not a bot token (xoxb-).",
+        "Note `search:read.public`, not `search:read`: the broader scope needs Slack approval the app does not have."
+      ]
+    }
+  }
+}

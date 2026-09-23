@@ -1,6 +1,13 @@
 # Stream Deck MCP Tool Packs
 
-This repository is the official catalog of tool packs for [Stream Deck MCP Studio](https://github.com/maxf98/streamdeck-mcp-studio). Tool packs are local MCP servers that run as subprocesses inside the Studio's gateway, exposing tools that Stream Deck buttons can call at press time.
+This repository is the official catalog of MCP servers for [Stream Deck MCP Studio](https://github.com/maxf98/streamdeck-mcp-studio) — both **tool packs**, local MCP servers that run as subprocesses inside the Studio's gateway, and **remote servers** hosted by their vendors. Its tools are available to every Stream Deck button at press time.
+
+It is a conforming MCP registry: every entry is a `server.json` document
+(`ServerDetail`, schema `2025-12-11`), generated into `catalog.json` and served through
+the Generic Registry API, so other clients can consume it too.
+
+**To contribute a server, read [CONTRIBUTING.md](CONTRIBUTING.md).** The rest of this file
+describes how a tool pack is built.
 
 ---
 
@@ -38,7 +45,8 @@ tools/
 {
   "id": "my_pack",
   "name": "My Pack",
-  "description": "One sentence: what does this pack let you do?",
+  "description": "What does this pack let you do? As long as it needs to be.",
+  "summary": "The same thing in at most 100 characters.",
   "version": "1.0.0",
   "command": "node",
   "args": ["server.mjs"],
@@ -60,7 +68,8 @@ tools/
 |---|---|---|
 | `id` | ✓ | Lowercase, **underscores only** (no hyphens). Becomes the tool namespace: `my_pack__tool_name` |
 | `name` | ✓ | Human-readable name shown in the UI |
-| `description` | ✓ | One sentence shown in the pack browser |
+| `description` | ✓ | The full prose, shown in the pack browser. No length limit |
+| `summary` | ✓ | **≤ 100 characters.** Becomes the spec `description`, which the schema caps at 100 — hence the two fields |
 | `version` | ✓ | Semver |
 | `command` | ✓ | Always `"node"` |
 | `args` | ✓ | Always `["server.mjs"]` |
@@ -161,60 +170,50 @@ about the missing structured content. Branches that genuinely fail should set
 
 ---
 
-## registry.json — the REMOTE server list
+## The remote servers — `servers/`
 
-`registry.json` next to `index.json` is a different thing from the pack catalog, and it
-lives here for the same reason: the Studio fetches it over raw.githubusercontent.com, so
-**adding a remote MCP server is a commit to this repo, not a deploy.**
+Remote servers (Notion, Figma, Slack, …) are hosted by their vendors, so nothing is
+installed and there is no code to review. Each is one hand-written `server.json` in
+`servers/`, which is why **adding a remote MCP server is a commit to this repo, not a
+deploy.** See [CONTRIBUTING.md](CONTRIBUTING.md) for the file format and for the auth
+fields — including why auth is *not* in the spec's fields and each `_meta` auth entry is
+a per-provider workaround.
 
-Remote servers (Notion, Figma, Slack, …) are hosted by their vendors — nothing is
-installed. Each entry says only what a client needs to authenticate:
+Remotes used to be authored as typed data in the private `streamdeck-mcp-registry` repo
+and emitted here by `npm run emit`. That's no longer the case, and the reason is the
+whole point of the change: the source of truth was somewhere nobody outside the team
+could send a pull request to. `servers/` is here so outside contributions are possible.
 
-```json
-"notion": { "url": "https://mcp.notion.com/mcp", "transport": "streamable-http" }
-```
+---
 
-Most need nothing more, because they support MCP's dynamic client registration + PKCE.
-The exceptions carry extra fields: `scopes` when the provider's authorization server
-advertises no defaults, `auth: "api-key"` + `apiKeyUrl` for providers that don't let
-third parties do OAuth at all (GitHub), and `clientId` + `exchangeProxy: true` for a
-pre-registered app whose code→token exchange needs a client secret (Slack).
+## Generated files — don't edit these
 
-**Do not hand-edit this file.** It is generated from the typed list in the
-`streamdeck-mcp-registry` repo, where every entry carries a comment explaining the
-provider quirk behind it:
+| File | What it is |
+|---|---|
+| `catalog.json` | The spec-shaped catalog: every pack and every remote as one `ServerDetail` list. **New clients should read this one.** |
+| `index.json` | Legacy. The pack catalog in its original shape, for already-shipped Studio builds |
+| `registry.json` | Legacy. The remote list in its original shape, ditto |
+
+All three come from `scripts/build_catalog.py`, and CI rewrites them on every push to
+`main` — so a hand edit is silently reverted. The two legacy files are emitted
+byte-for-byte as before; they can be deleted once nothing fetches them.
 
 ```bash
-cd ../streamdeck-mcp-registry
-npm run emit -- ../streamdeck-mcp-tools/registry.json
+pip install jsonschema
+python3 scripts/build_catalog.py             # validate + write
+python3 scripts/build_catalog.py --validate  # validate only (what PR CI runs)
 ```
-
-`clientId` values here are public by construction — they travel in every authorize URL.
-Client **secrets** are not in this file and never will be: the one provider that needs
-one (Slack) has its exchange proxied by the registry service, which holds the secret as
-an env var. If you are adding a server that needs a secret, it needs a service-side
-handler too, not a field here.
 
 ---
 
 ## Adding a pack to the catalog
 
 1. Create `tools/<your-pack-id>/` with the three required files
-2. Add an entry to `index.json`:
+2. Open a pull request
 
-```json
-{
-  "id": "your_pack_id",
-  "name": "Your Pack",
-  "description": "One sentence description.",
-  "version": "1.0.0",
-  "platform": ["darwin"],
-  "tags": ["relevant", "tags"],
-  "path": "tools/your_pack_id"
-}
-```
-
-3. Open a pull request
+That's it — there is no catalog entry to write. The entry is generated from your
+`manifest.json`, so `version`, `command` and `args` can't drift out of step with the
+code. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

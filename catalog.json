@@ -1,0 +1,1693 @@
+{
+  "schemaVersion": "2025-12-11",
+  "servers": [
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/apple_notes",
+        "title": "Apple Notes",
+        "description": "Read and write Apple Notes — list, search, create, update and delete notes and folders.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/apple_notes"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "apple_notes",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "notes",
+              "apple",
+              "macos",
+              "markdown",
+              "writing"
+            ],
+            "longDescription": "Read and write notes in Apple Notes. List, search, create, update, append and delete notes and folders.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/apple_notes",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/apple_reminders",
+        "title": "Apple Reminders",
+        "description": "Manage Apple Reminders — list, create, complete, delete and search across all lists.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/apple_reminders"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "apple_reminders",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "reminders",
+              "tasks",
+              "apple",
+              "macos",
+              "productivity"
+            ],
+            "longDescription": "Manage Apple Reminders — list, create, complete, delete and search reminders across all lists.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/apple_reminders",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/audio",
+        "title": "Audio",
+        "description": "macOS audio as live resources: output/input volume, mute and device switching.",
+        "version": "3.3.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/audio"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "audio",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "system",
+              "volume",
+              "audio",
+              "input",
+              "output",
+              "microphone",
+              "devices",
+              "macos",
+              "resource"
+            ],
+            "longDescription": "Exposes macOS audio as live MCP resources that push on change: output volume/mute (resource://audio/output), input (mic) volume/mute (resource://audio/input), and the device inventory with each device's live volume/mute + current defaults (resource://audio/devices). Tools: get/set output & input volume + mute (targeting the default device or any specific device by UID), and list / switch the default output & input device.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/audio",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/bash",
+        "title": "Bash / Shell",
+        "description": "Run shell commands on macOS, with long-running processes as live resources.",
+        "version": "1.9.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/bash"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "bash",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "bash",
+              "shell",
+              "terminal",
+              "macos",
+              "developer",
+              "scripts",
+              "process",
+              "watch"
+            ],
+            "longDescription": "Run shell commands and scripts on macOS. Capture stdout/stderr, open interactive Terminal windows, and automate system tasks. Also starts long-running processes by handle and exposes each one's live status as a subscribable resource (resource://bash/process/{id}), so a button face can reflect whether a process is running.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/bash",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/chrome",
+        "title": "Google Chrome",
+        "description": "Control Chrome tabs and windows, with optional CDP for JS and screenshots.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/chrome"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "chrome",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "chrome",
+              "browser",
+              "tabs",
+              "navigation",
+              "web",
+              "cdp",
+              "macos"
+            ],
+            "longDescription": "Control Chrome tabs and windows via JXA. Optionally enable CDP (--remote-debugging-port=9222) for JS execution, page source, and screenshots.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/chrome",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/clipboard",
+        "title": "Clipboard",
+        "description": "Read, write and transform the macOS clipboard, and copy the current selection.",
+        "version": "1.3.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/clipboard"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "clipboard",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "clipboard",
+              "copy",
+              "paste",
+              "selection",
+              "text",
+              "macos",
+              "system"
+            ],
+            "longDescription": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard, and copy the current selection out of the frontmost app with ⌘C. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Copying the selection needs Accessibility permission — macOS asks on first use.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/clipboard",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/filesystem",
+        "title": "Filesystem",
+        "description": "Read, write, edit, move and search files within folders you explicitly allow.",
+        "version": "1.1.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/filesystem"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "filesystem",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "linux",
+              "win32"
+            ],
+            "tags": [
+              "filesystem",
+              "files",
+              "directories",
+              "read",
+              "write",
+              "search",
+              "disk"
+            ],
+            "longDescription": "Read, write, edit, move and search files and directories on disk. Wraps the official @modelcontextprotocol/server-filesystem — every operation is confined to the folders you allow, and paths outside them are refused. Set the allowed roots in this pack's config before use.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/filesystem",
+              "command": "node",
+              "args": [
+                "node_modules/@modelcontextprotocol/server-filesystem/dist/index.js",
+                "${FILESYSTEM_ROOTS}"
+              ],
+              "install": "npm install"
+            },
+            "configSchema": {
+              "roots": {
+                "description": "Folders the buttons may read and write. Everything outside them is refused — list specific project or documents folders, NOT / or your home directory.",
+                "env": "FILESYSTEM_ROOTS",
+                "type": "path-list",
+                "required": true,
+                "example": "/Users/you/Documents/notes"
+              }
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/git",
+        "title": "Git",
+        "description": "Live repo status as a subscribable resource, plus commit, push, pull and stash.",
+        "version": "1.0.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/git"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "git",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "linux",
+              "win32"
+            ],
+            "tags": [
+              "git",
+              "vcs",
+              "version-control",
+              "branch",
+              "commit",
+              "push",
+              "pull",
+              "stash",
+              "developer",
+              "resource"
+            ],
+            "longDescription": "Repository state for buttons: branch, ahead/behind, and staged/unstaged/untracked counts as structured fields rather than porcelain a face would have to parse, plus commit, push, pull, fetch, branch switching and stashing. The point is resource://git/status/{repo} — a live, subscribable status that pushes when you save a file, commit or switch branches, so a key can show \"main ↑1 ~3\" without polling. Watching only runs while something is bound. No force-push, reset, rebase or amend: use the bash pack if you mean it.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/git",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            },
+            "configSchema": {
+              "default_repo": {
+                "description": "Absolute path to the repository buttons should act on when they don't name one. Lets a face be authored without hard-coding a path.",
+                "env": "GIT_DEFAULT_REPO",
+                "type": "string",
+                "required": false
+              },
+              "auto_fetch_seconds": {
+                "description": "How often to `git fetch` in the background while a face is bound, so ahead/behind stay true. Off by default (0) — a silent fetch on someone's repo should be asked for. 300 is a reasonable value.",
+                "env": "GIT_AUTO_FETCH_SECONDS",
+                "type": "string",
+                "required": false
+              },
+              "poll_seconds": {
+                "description": "How often to re-read `git status` while a face is bound, which is how working-tree edits are noticed (commits and branch switches are instant via a file watcher). Default 4.",
+                "env": "GIT_POLL_SECONDS",
+                "type": "string",
+                "required": false
+              }
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/launcher",
+        "title": "Launcher",
+        "description": "Open apps, folders and URLs, and reveal files in Finder.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/launcher"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "launcher",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "launch",
+              "open",
+              "finder",
+              "app",
+              "url",
+              "folder"
+            ],
+            "longDescription": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/launcher",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/memory",
+        "title": "Memory",
+        "description": "A persistent key-value store for buttons, exposed as a live resource.",
+        "version": "1.0.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/memory"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "memory",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "linux",
+              "win32"
+            ],
+            "tags": [
+              "memory",
+              "storage",
+              "persistence",
+              "state",
+              "key-value",
+              "counter",
+              "toggle",
+              "resource"
+            ],
+            "longDescription": "A persistent key-value store for buttons — the one thing a face cannot do for itself. A face runs on an opaque origin with no localStorage and no indexedDB, and its local view state dies when the idle window is dismissed, so without a server a button cannot remember anything between presses. Get/set/delete any JSON value, plus increment_value and toggle_value for the two cases buttons actually need (a press counter, a latching toggle). The whole store is also a live resource (resource://memory/store), so a face can bind it and repaint when a value changes.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/memory",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/obsidian",
+        "title": "Obsidian",
+        "description": "Read, write and search notes in your Obsidian vault.",
+        "version": "1.3.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/obsidian"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "obsidian",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "notes",
+              "obsidian",
+              "markdown",
+              "knowledge-base"
+            ],
+            "longDescription": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/obsidian",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/openai",
+        "title": "OpenAI",
+        "description": "Structured LLM calls, vision, image generation and Whisper transcription.",
+        "version": "1.4.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/openai"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "openai",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "linux",
+              "win32"
+            ],
+            "tags": [
+              "llm",
+              "openai",
+              "ai",
+              "structured-output",
+              "whisper",
+              "transcription",
+              "image",
+              "image-generation",
+              "vision"
+            ],
+            "longDescription": "Structured LLM calls, image analysis (GPT-4o vision), image generation and editing (GPT Image — written to disk and returned as a path, never as inline base64), and Whisper audio transcription. All tools share a single API key.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/openai",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            },
+            "configSchema": {
+              "api_key": {
+                "description": "OpenAI API key (sk-...)",
+                "env": "OPENAI_API_KEY",
+                "type": "string",
+                "required": true,
+                "secret": true
+              }
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/photoshop",
+        "title": "Photoshop",
+        "description": "Drive Photoshop by script: layers, selections, filters and generative AI.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/photoshop"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "photoshop",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "photoshop",
+              "adobe",
+              "design",
+              "image",
+              "layers",
+              "retouch",
+              "generative",
+              "export",
+              "creative",
+              "key",
+              "dial",
+              "popup"
+            ],
+            "longDescription": "Drive Adobe Photoshop by script — 100 tools covering documents, layers (create/order/transform/properties/masks), selections, text, filters, colour adjustments, layer styles, history, actions, data sets, image stacks, export/place, and the generative-AI family (fill, remove, expand, upscale, sky replacement, generate image). Includes 16 multi-step recipe tools that run a whole workflow (remove background, enhance portrait, frequency separation, batch watermark, CSV to cards…) inside one suspended history state, so a single Undo reverts the lot. Works by running ExtendScript inside Photoshop over AppleScript's `do javascript`, with no plugin to install. Also exposes the active document's live state as a subscribable resource (resource://photoshop/document) plus key, dial and popup surfaces.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/photoshop",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/powerpoint",
+        "title": "PowerPoint",
+        "description": "Edit PowerPoint slides and shapes, and run the slide show as a presenter remote.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/powerpoint"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "powerpoint",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "powerpoint",
+              "presentation",
+              "slides",
+              "office",
+              "microsoft",
+              "macos",
+              "presenter",
+              "slideshow",
+              "design",
+              "key",
+              "dial",
+              "popup"
+            ],
+            "longDescription": "Drive the open Microsoft PowerPoint presentation via AppleScript — read the live selection, restyle selected shapes and text, add text boxes and shapes, create/delete/duplicate/reorder slides, navigate the editor, and run the slide show as a presenter remote (start/exit, next/previous, jump to slide, elapsed time). Also exposes the open presentation and the live selection as subscribable resources (resource://powerpoint/presentation, resource://powerpoint/selection) plus key, dial and popup surfaces.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/powerpoint",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/quicktime",
+        "title": "QuickTime Player",
+        "description": "Control QuickTime Player: record audio and screen, and open media files.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/quicktime"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "quicktime",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "quicktime",
+              "audio",
+              "recording",
+              "screen-recording",
+              "video",
+              "macos",
+              "applescript"
+            ],
+            "longDescription": "Control QuickTime Player via AppleScript. Record audio (microphone → M4A) and screen (full screen → MOV), open media files, and list open documents. On first use macOS will ask permission to control QuickTime — click Allow once.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/quicktime",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/safari",
+        "title": "Safari",
+        "description": "Control Safari tabs and windows, including JS execution and page source.",
+        "version": "1.3.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/safari"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "safari",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "safari",
+              "browser",
+              "tabs",
+              "navigation",
+              "web",
+              "macos",
+              "javascript"
+            ],
+            "longDescription": "Control Safari tabs and windows via AppleScript. Includes JS execution, page source and text via 'Allow JavaScript from Apple Events' (no extension or debug port needed).",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/safari",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/screenshot",
+        "title": "Screenshot",
+        "description": "Capture the screen, a window or a dragged region as PNG, and record video.",
+        "version": "1.4.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/screenshot"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "screenshot",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "screenshot",
+              "screen",
+              "capture",
+              "vision",
+              "image",
+              "recording",
+              "macos"
+            ],
+            "longDescription": "Capture the screen, frontmost window, a clicked window, or an interactive drag-selected region as a PNG image. Saves to a path (creating folders as needed) or returns base64. Also records the screen to video.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/screenshot",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/vscode",
+        "title": "VS Code",
+        "description": "Control VS Code: toggle panels, run commands, create terminals and open folders.",
+        "version": "1.2.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/vscode"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "vscode",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "win32",
+              "linux"
+            ],
+            "tags": [
+              "vscode",
+              "editor",
+              "terminal",
+              "sidebar",
+              "development"
+            ],
+            "longDescription": "Control VS Code windows — toggle sidebar/terminal/panels, run commands, create terminals, open folders. Requires the 'nicollasr.vscode-streamdeck' extension installed in VS Code.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/vscode",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/web",
+        "title": "Web",
+        "description": "Search the web with Brave and fetch any http(s) page as readable text.",
+        "version": "1.0.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/web"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "web",
+            "kind": "pack",
+            "platform": [
+              "darwin",
+              "linux",
+              "win32"
+            ],
+            "tags": [
+              "web",
+              "search",
+              "brave",
+              "fetch",
+              "url",
+              "http",
+              "scrape",
+              "news",
+              "internet"
+            ],
+            "longDescription": "Search the web and read pages. search_web and search_news query the Brave Search API (needs a free API key); fetch_url retrieves any http(s) page and returns it as readable text, and needs no key at all. fetch_url is also how a face reaches an HTTP API it cannot call itself — a face runs on an opaque origin, so its own fetch is blocked by CORS for most hosts, while a pack request carries no Origin.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/web",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            },
+            "configSchema": {
+              "brave_api_key": {
+                "description": "Brave Search API key — needed for search_web / search_news only; fetch_url works without it. Free tier at https://api-dashboard.search.brave.com/",
+                "env": "BRAVE_SEARCH_API_KEY",
+                "type": "secret",
+                "required": false
+              }
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/window_management",
+        "title": "Window Management",
+        "description": "Move, resize and snap windows across displays, with windows as live resources.",
+        "version": "3.0.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/window_management"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "window_management",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "windows",
+              "resize",
+              "move",
+              "screens",
+              "displays",
+              "multi-monitor",
+              "layout",
+              "macos",
+              "apps",
+              "switcher",
+              "key",
+              "dial",
+              "popup",
+              "handles"
+            ],
+            "longDescription": "Move, resize and snap windows across screens; open, close and place windows across displays and spaces. The tools ACT; the observable state is subscribable resources — the app list, the open windows, the displays, the Mission Control spaces and the frontmost app, each with a schema a face can bind to. Windows are addressed by stable handles (get_windows and new_window return one per window) rather than by a z-order index that shifts as windows are focused. Multi-monitor aware: a new window lands on the display the pointer is on rather than wherever the app cascaded it, and any window can be pulled to the display in front of you. Also ships an app-switcher across three Stream Deck surfaces — a key (press cycles apps), a dial (rotate to preview, press to switch), and a popup grid — as live MCP App UI resources with in-component handlers.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/window_management",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/xcode",
+        "title": "Xcode",
+        "description": "Build, run and test the active Xcode scheme, with structured errors and build state.",
+        "version": "1.3.0",
+        "repository": {
+          "url": "https://github.com/maxf98/streamdeck-mcp-tools",
+          "source": "github",
+          "subfolder": "tools/xcode"
+        },
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "xcode",
+            "kind": "pack",
+            "platform": [
+              "darwin"
+            ],
+            "tags": [
+              "xcode",
+              "build",
+              "ios",
+              "macos",
+              "swift",
+              "developer",
+              "test",
+              "simulator",
+              "key",
+              "dial",
+              "popup"
+            ],
+            "longDescription": "Drive the running Xcode session via AppleScript — build, run, test, clean and stop the active scheme, read structured build errors/warnings/test failures, switch schemes, inspect projects/targets/build settings, open files and jump to a line. Also exposes the active workspace's live build state as a subscribable resource (resource://xcode/build) plus key, dial and popup surfaces.",
+            "distribution": {
+              "kind": "repo-subdir",
+              "path": "tools/xcode",
+              "command": "node",
+              "args": [
+                "server.mjs"
+              ],
+              "install": "npm install"
+            }
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/miro",
+        "title": "Miro",
+        "description": "Hosted Miro MCP server: boards, items and comments.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.miro.com/"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "miro",
+            "order": 0,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/figma",
+        "title": "Figma",
+        "description": "Hosted Figma MCP server: read designs, comments and dev resources.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.figma.com/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "figma",
+            "order": 1,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/atlassian",
+        "title": "Atlassian",
+        "description": "Hosted Atlassian MCP server for Jira and Confluence.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.atlassian.com/v1/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "atlassian",
+            "order": 2,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/coda",
+        "title": "Coda",
+        "description": "Hosted Coda MCP server: docs, tables and rows.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://coda.io/apis/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "coda",
+            "order": 3,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/notion",
+        "title": "Notion",
+        "description": "Hosted Notion MCP server: pages, databases and search.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.notion.com/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "notion",
+            "order": 4,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/paypal",
+        "title": "PayPal",
+        "description": "Hosted PayPal MCP server: invoices, payments and subscriptions.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.paypal.com/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "paypal",
+            "order": 5,
+            "authKind": "oauth-dcr",
+            "notes": [
+              "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/canva",
+        "title": "Canva",
+        "description": "Hosted Canva MCP server: designs, folders, assets and comments.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.canva.com/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "canva",
+            "order": 6,
+            "authKind": "oauth-dcr",
+            "scopes": "profile:read design:meta:read design:content:read design:content:write folder:read folder:write asset:read asset:write comment:read comment:write",
+            "notes": [
+              "Canva's authorization server advertises no default scope set, so the authorize request must name them explicitly or the grant comes back empty."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gitlab",
+        "title": "GitLab",
+        "description": "GitLab's hosted MCP server: issues, merge requests and repositories.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://gitlab.com/api/v4/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gitlab",
+            "order": 7,
+            "authKind": "oauth-dcr",
+            "scopes": "mcp",
+            "notes": [
+              "GitLab gates MCP behind its own `mcp` scope (beta since 18.6, Free tier).",
+              "Self-managed instances expose the same API at <instance>/api/v4/mcp."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gmail",
+        "title": "Gmail",
+        "description": "Google's hosted Gmail MCP server: read and compose mail.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://gmailmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gmail",
+            "order": 8,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.compose",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: RESTRICTED — needs Google verification plus an annual paid CASA security assessment.",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gcalendar",
+        "title": "Google Calendar",
+        "description": "Google's hosted Calendar MCP server: events and schedules.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://calendarmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gcalendar",
+            "order": 9,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/calendar",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: SENSITIVE — needs Google verification (no CASA assessment).",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gdrive",
+        "title": "Google Drive",
+        "description": "Google's hosted Drive MCP server: files and folders.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://drivemcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gdrive",
+            "order": 10,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/drive",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: RESTRICTED — needs Google verification plus an annual paid CASA security assessment.",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gsheets",
+        "title": "Google Sheets",
+        "description": "Google's hosted Sheets MCP server: read and write spreadsheets.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://sheetsmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gsheets",
+            "order": 11,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: RESTRICTED — needs Google verification plus an annual paid CASA security assessment.",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gchat",
+        "title": "Google Chat",
+        "description": "Google's hosted Chat MCP server: messages and spaces.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://chatmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gchat",
+            "order": 12,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/chat.messages https://www.googleapis.com/auth/chat.spaces",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: RESTRICTED — needs Google verification plus an annual paid CASA security assessment.",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gdocs",
+        "title": "Google Docs",
+        "description": "Google's hosted Docs MCP server: read and edit documents.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://docsmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gdocs",
+            "order": 13,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/documents",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: SENSITIVE — needs Google verification (no CASA assessment).",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/gslides",
+        "title": "Google Slides",
+        "description": "Google's hosted Slides MCP server: read and edit presentations.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://slidesmcp.googleapis.com/mcp/v1"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "gslides",
+            "order": 14,
+            "authKind": "oauth-preregistered",
+            "scopes": "https://www.googleapis.com/auth/presentations",
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "publishGated": true,
+            "notes": [
+              "accounts.google.com has NO registration_endpoint, so these need a pre-registered Google Cloud OAuth client. It is a public/PKCE desktop client, so there is no secret — the client id gates AVAILABILITY, not confidentiality.",
+              "NOT SHIPPABLE YET — do not set GOOGLE_CLIENT_ID in production. These need Google OAuth verification first. Testing mode is not an escape hatch: <=100 listed test users, an unverified-app warning, and consent + refresh tokens expire after 7 days, so buttons would break weekly.",
+              "Scope class: SENSITIVE — needs Google verification (no CASA assessment).",
+              "Only Gmail is publicly documented; the rest follow the same `<app>mcp.googleapis.com/mcp/v1` shape and are live."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true,
+          "publishGated": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/github",
+        "title": "GitHub",
+        "description": "GitHub's hosted MCP server: repos, issues and PRs. Needs a personal access token.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://api.githubcopilot.com/mcp/",
+            "headers": [
+              {
+                "name": "Authorization",
+                "description": "GitHub personal access token, sent as `Bearer <token>`.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "github",
+            "order": 15,
+            "authKind": "api-key",
+            "apiKeyUrl": "https://github.com/settings/tokens",
+            "notes": [
+              "GitHub's hosted server has no dynamic client registration and its built-in OAuth is reserved for first-party clients (Copilot/VS Code), so we take a user-supplied PAT as the Bearer token instead."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.maxf98/slack",
+        "title": "Slack",
+        "description": "Slack's hosted MCP server: search, messages, channels and canvases.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://mcp.slack.com/mcp"
+          }
+        ],
+        "_meta": {
+          "io.github.maxf98.streamdeck-mcp/studio": {
+            "sourceId": "slack",
+            "order": 16,
+            "authKind": "oauth-preregistered",
+            "scopes": "search:read.public chat:write channels:history users:read users:read.email canvases:read canvases:write",
+            "clientId": "392247373648.10663617022481",
+            "clientIdEnv": "SLACK_CLIENT_ID",
+            "scopesEnv": "SLACK_SCOPES",
+            "exchangeProxy": true,
+            "notes": [
+              "Pre-registered OAuth app: Slack requires a client SECRET, so the code->token exchange runs on the registry service and `exchangeProxy` tells the Studio to route its redirect through it. The secret stays a Railway env var.",
+              "The client id is a literal here because this list is published as a static file. That is not a leak: a client id is public by construction (it rides in every authorize URL) and this exact value has been served unauthenticated from /registry all along.",
+              "The scopes are USER scopes (sent as user_scope in the authorize URL) because Slack's MCP server needs a user token (xoxp-), not a bot token (xoxb-).",
+              "Note `search:read.public`, not `search:read`: the broader scope needs Slack approval the app does not have."
+            ]
+          }
+        }
+      },
+      "_meta": {
+        "io.github.maxf98.streamdeck-mcp/registry": {
+          "status": "active",
+          "isLatest": true
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "count": 38
+  }
+}

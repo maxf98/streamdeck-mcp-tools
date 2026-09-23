@@ -2,6 +2,7 @@
     "id": "filesystem",
     "name": "Filesystem",
     "description": "Read, write, edit, move and search files and directories on disk. Wraps the official @modelcontextprotocol/server-filesystem — every operation is confined to the folders you allow, and paths outside them are refused. Set the allowed roots in this pack's config before use.",
+    "summary": "Read, write, edit, move and search files within folders you explicitly allow.",
     "version": "1.1.0",
     "command": "node",
     "args": [
@@ -9,8 +10,20 @@
         "${FILESYSTEM_ROOTS}"
     ],
     "install": "npm install",
-    "platform": ["darwin", "linux", "win32"],
-    "tags": ["filesystem", "files", "directories", "read", "write", "search", "disk"],
+    "platform": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "tags": [
+        "filesystem",
+        "files",
+        "directories",
+        "read",
+        "write",
+        "search",
+        "disk"
+    ],
     "config_schema": {
         "roots": {
             "description": "Folders the buttons may read and write. Everything outside them is refused — list specific project or documents folders, NOT / or your home directory.",

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/atlassian",
+  "title": "Atlassian",
+  "description": "Hosted Atlassian MCP server for Jira and Confluence.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.atlassian.com/v1/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "atlassian",
+      "order": 2,
+      "authKind": "oauth-dcr",
+      "notes": [
+        "Standard MCP OAuth 2.1 with PKCE and dynamic client registration — no pre-registered credentials, nothing env-gated."
+      ]
+    }
+  }
+}

@@ -2,10 +2,20 @@
     "id": "obsidian",
     "name": "Obsidian",
     "description": "Read and write notes in your Obsidian vault. Search by content, create and update notes, manage folders, and navigate your vault structure.",
+    "summary": "Read, write and search notes in your Obsidian vault.",
     "version": "1.3.0",
     "command": "node",
-    "args": ["server.mjs"],
+    "args": [
+        "server.mjs"
+    ],
     "install": "npm install",
-    "platform": ["darwin"],
-    "tags": ["notes", "obsidian", "markdown", "knowledge-base"]
+    "platform": [
+        "darwin"
+    ],
+    "tags": [
+        "notes",
+        "obsidian",
+        "markdown",
+        "knowledge-base"
+    ]
 }

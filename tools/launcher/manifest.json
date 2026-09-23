@@ -1,11 +1,23 @@
 {
-  "id": "launcher",
-  "name": "Launcher",
-  "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
-  "version": "1.2.0",
-  "command": "node",
-  "args": ["server.mjs"],
-  "install": "npm install",
-  "platform": ["darwin"],
-  "tags": ["launch", "open", "finder", "app", "url", "folder"]
+    "id": "launcher",
+    "name": "Launcher",
+    "description": "Open apps, folders, URLs and reveal files in Finder using the macOS open command.",
+    "summary": "Open apps, folders and URLs, and reveal files in Finder.",
+    "version": "1.2.0",
+    "command": "node",
+    "args": [
+        "server.mjs"
+    ],
+    "install": "npm install",
+    "platform": [
+        "darwin"
+    ],
+    "tags": [
+        "launch",
+        "open",
+        "finder",
+        "app",
+        "url",
+        "folder"
+    ]
 }

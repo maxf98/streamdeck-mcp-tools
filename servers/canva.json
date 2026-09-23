@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/canva",
+  "title": "Canva",
+  "description": "Hosted Canva MCP server: designs, folders, assets and comments.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.canva.com/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "canva",
+      "order": 6,
+      "authKind": "oauth-dcr",
+      "scopes": "profile:read design:meta:read design:content:read design:content:write folder:read folder:write asset:read asset:write comment:read comment:write",
+      "notes": [
+        "Canva's authorization server advertises no default scope set, so the authorize request must name them explicitly or the grant comes back empty."
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.maxf98/gitlab",
+  "title": "GitLab",
+  "description": "GitLab's hosted MCP server: issues, merge requests and repositories.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://gitlab.com/api/v4/mcp"
+    }
+  ],
+  "_meta": {
+    "io.github.maxf98.streamdeck-mcp/studio": {
+      "sourceId": "gitlab",
+      "order": 7,
+      "authKind": "oauth-dcr",
+      "scopes": "mcp",
+      "notes": [
+        "GitLab gates MCP behind its own `mcp` scope (beta since 18.6, Free tier).",
+        "Self-managed instances expose the same API at <instance>/api/v4/mcp."
+      ]
+    }
+  }
+}
