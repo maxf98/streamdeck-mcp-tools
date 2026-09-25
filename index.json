@@ -98,8 +98,8 @@
         {
             "id": "clipboard",
             "name": "Clipboard",
-            "description": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard, and copy the current selection out of the frontmost app with \u2318C. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Copying the selection needs Accessibility permission \u2014 macOS asks on first use.",
-            "version": "1.3.0",
+            "description": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Needs no macOS permissions \u2014 the pasteboard isn't TCC-gated, so every tool works with no prompt. Reading the frontmost app's selection is not included: that requires synthesizing \u2318C, which needs Accessibility. Have the user copy first, then call get_clipboard.",
+            "version": "2.0.0",
             "platform": [
                 "darwin"
             ],
@@ -107,7 +107,6 @@
                 "clipboard",
                 "copy",
                 "paste",
-                "selection",
                 "text",
                 "macos",
                 "system"

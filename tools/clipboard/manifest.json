@@ -1,9 +1,9 @@
 {
     "id": "clipboard",
     "name": "Clipboard",
-    "description": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard, and copy the current selection out of the frontmost app with ⌘C. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Copying the selection needs Accessibility permission — macOS asks on first use.",
-    "summary": "Read, write and transform the macOS clipboard, and copy the current selection.",
-    "version": "1.3.0",
+    "description": "Copy and paste programmatically: read, write, transform, and manage the macOS system clipboard. Supports plain text, HTML, RTF, images, file paths, and clipboard history. Needs no macOS permissions — the pasteboard isn't TCC-gated, so every tool works with no prompt. Reading the frontmost app's selection is not included: that requires synthesizing ⌘C, which needs Accessibility. Have the user copy first, then call get_clipboard.",
+    "summary": "Read, write and transform the macOS clipboard. No permissions needed.",
+    "version": "2.0.0",
     "command": "node",
     "args": [
         "server.mjs"
@@ -16,7 +16,6 @@
         "clipboard",
         "copy",
         "paste",
-        "selection",
         "text",
         "macos",
         "system"
