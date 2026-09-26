@@ -46,6 +46,10 @@
       "scopes": "search:read.public chat:write channels:history users:read users:read.email canvases:read canvases:write",
       "clientId": "392247373648.10663617022481",
       "exchangeProxy": true
+    },
+    "sonos": {
+      "url": "https://mcp.ws.sonos.com/mcp",
+      "transport": "streamable-http"
     }
   }
 }
