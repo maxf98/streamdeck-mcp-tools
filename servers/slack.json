@@ -19,11 +19,10 @@
       "clientId": "392247373648.10663617022481",
       "clientIdEnv": "SLACK_CLIENT_ID",
       "scopesEnv": "SLACK_SCOPES",
-      "exchangeProxy": true,
       "notes": [
-        "Pre-registered OAuth app: Slack requires a client SECRET, so the code->token exchange runs on the registry service and `exchangeProxy` tells the Studio to route its redirect through it. The secret stays a Railway env var.",
+        "Pre-registered OAuth app with PKCE enabled (2026-09-28): Slack treats it as a public client, so the Studio exchanges the code itself with a code_verifier and NO client secret, via the endpoints mcp.slack.com advertises (oauth/v2_user/authorize + oauth.v2.user.access). No `exchangeProxy` any more. PKCE is one-way on Slack's side, and it only allows `http://localhost` (not 127.0.0.1) desktop redirects with USER scopes.",
         "The client id is a literal here because this list is published as a static file. That is not a leak: a client id is public by construction (it rides in every authorize URL) and this exact value has been served unauthenticated from /registry all along.",
-        "The scopes are USER scopes (sent as user_scope in the authorize URL) because Slack's MCP server needs a user token (xoxp-), not a bot token (xoxb-).",
+        "The scopes are USER scopes because Slack's MCP server needs a user token (xoxp-), not a bot token (xoxb-) — and a PKCE localhost redirect may not request bot scopes at all.",
         "The scopes are the full set Slack's MCP server uses (docs.slack.dev/ai/mcp-server, checked 2026-09-28) — its tool set is fixed, so any scope beyond this list unlocks nothing. The search:read.* variants replace the broad `search:read`, which needs Slack approval the app does not have."
       ]
     }
