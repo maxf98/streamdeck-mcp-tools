@@ -14,9 +14,11 @@ static JSON, and ours can't. A conforming client asks for
 and a percent-encoded name is not a path a static host answers. That is the entire reason
 this process exists alongside a public `catalog.json` anyone can already `curl`.
 
-**No secrets are here, by construction.** The OAuth code→token exchange for providers that
-refuse dynamic client registration needs a client secret, so it stays in the private
-`streamdeck-mcp-registry` service. That split is the whole boundary between the two.
+**No secrets are here, by construction.** There used to be a private
+`streamdeck-mcp-registry` service holding Slack's client secret for the code→token
+exchange; it was retired on 2026-09-28 once the Slack app enabled PKCE, which makes it a
+public client that the Studio exchanges for itself. Keep it that way: a provider that
+needs a secret is a reason to ask for PKCE, not to bring a secret-holding service back.
 
 ## Routes
 

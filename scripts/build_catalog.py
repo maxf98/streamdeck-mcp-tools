@@ -45,7 +45,7 @@ WHAT DOESN'T CONFORM YET, deliberately:
   `_meta` as `distribution`, which foreign clients correctly ignore.
 
   `platform` has no spec field at all, so it is `_meta` too. Same for the OAuth hints
-  (`scopes`, `clientId`, `exchangeProxy`) — auth is the protocol's job, discovered at
+  (`scopes`, `clientId`) — auth is the protocol's job, discovered at
   connect time, and these are per-provider workarounds for providers that break it.
 """
 
@@ -80,7 +80,7 @@ META_REGISTRY = "io.github.maxf98.streamdeck-mcp/registry"
 #: byte-for-byte against the committed file.
 CATALOG_FIELDS = ["id", "name", "description", "version", "platform", "tags"]
 #: Ditto for registry.json entries.
-REGISTRY_FIELDS = ["url", "transport", "auth", "apiKeyUrl", "scopes", "clientId", "exchangeProxy"]
+REGISTRY_FIELDS = ["url", "transport", "auth", "apiKeyUrl", "scopes", "clientId"]
 
 
 # ── sources ───────────────────────────────────────────────────────────────────

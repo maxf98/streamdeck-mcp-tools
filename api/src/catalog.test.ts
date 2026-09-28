@@ -94,12 +94,12 @@ test("hides Google until GOOGLE_CLIENT_ID is set", () => {
 
 test("Slack ships with a static client id, and the env var only overrides it", () => {
     // The catalog is published as a static file, so Slack's (public) client id has to be
-    // IN it. The matching secret never is: it lives on the private OAuth-proxy service,
-    // which reports whether it's configured from its own /health.
+    // IN it. There is no matching secret anywhere: the Slack app has PKCE enabled, so it
+    // is a public client and the Studio exchanges the code itself.
     const fromFile = toLegacyRegistry(resolveAll(catalog, {})).mcpServers.slack;
     assert.ok(fromFile, "slack must be present with no env at all");
     assert.match(fromFile.clientId!, /^\d+\.\d+$/);
-    assert.equal(fromFile.exchangeProxy, true);
+    assert.equal("exchangeProxy" in fromFile, false, "no secret-holding proxy any more");
     // Slack's MCP server needs a USER token, so the default scopes are user scopes.
     assert.ok(fromFile.scopes?.includes("search:read"));
 

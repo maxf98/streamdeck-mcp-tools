@@ -58,7 +58,6 @@ export interface StudioMeta {
     scopesEnv?: string;
     clientId?: string;
     clientIdEnv?: string;
-    exchangeProxy?: boolean;
     apiKeyUrl?: string;
     /** Withheld until its gating env var is set. See resolve(). */
     publishGated?: boolean;
@@ -158,7 +157,6 @@ export interface PublishedServer {
     apiKeyUrl?: string;
     scopes?: string;
     clientId?: string;
-    exchangeProxy?: boolean;
 }
 
 /**
@@ -185,7 +183,6 @@ export function toLegacyRegistry(entries: CatalogEntry[]): { mcpServers: Record<
             ...(meta.apiKeyUrl ? { apiKeyUrl: meta.apiKeyUrl } : {}),
             ...(meta.scopes ? { scopes: meta.scopes } : {}),
             ...(meta.clientId ? { clientId: meta.clientId } : {}),
-            ...(meta.exchangeProxy ? { exchangeProxy: true } : {}),
         };
     }
     return { mcpServers };
