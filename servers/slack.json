@@ -15,7 +15,7 @@
       "sourceId": "slack",
       "order": 16,
       "authKind": "oauth-preregistered",
-      "scopes": "search:read.public chat:write channels:history users:read users:read.email canvases:read canvases:write",
+      "scopes": "search:read.public search:read.private search:read.mpim search:read.im search:read.files search:read.users emoji:read channels:read groups:read im:read mpim:read chat:write channels:history groups:history mpim:history im:history channels:write groups:write im:write mpim:write reactions:read reactions:write canvases:read canvases:write users:read users:read.email files:read files:write lists:read lists:write",
       "clientId": "392247373648.10663617022481",
       "clientIdEnv": "SLACK_CLIENT_ID",
       "scopesEnv": "SLACK_SCOPES",
@@ -24,7 +24,7 @@
         "Pre-registered OAuth app: Slack requires a client SECRET, so the code->token exchange runs on the registry service and `exchangeProxy` tells the Studio to route its redirect through it. The secret stays a Railway env var.",
         "The client id is a literal here because this list is published as a static file. That is not a leak: a client id is public by construction (it rides in every authorize URL) and this exact value has been served unauthenticated from /registry all along.",
         "The scopes are USER scopes (sent as user_scope in the authorize URL) because Slack's MCP server needs a user token (xoxp-), not a bot token (xoxb-).",
-        "Note `search:read.public`, not `search:read`: the broader scope needs Slack approval the app does not have."
+        "The scopes are the full set Slack's MCP server uses (docs.slack.dev/ai/mcp-server, checked 2026-09-28) — its tool set is fixed, so any scope beyond this list unlocks nothing. The search:read.* variants replace the broad `search:read`, which needs Slack approval the app does not have."
       ]
     }
   }
